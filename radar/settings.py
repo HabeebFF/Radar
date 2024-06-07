@@ -16,6 +16,14 @@ import pymysql
 pymysql.version_info = (1, 4, 6, 'final', 0)
 pymysql.install_as_MySQLdb()
 
+
+# password=[YOUR-PASSWORD] 
+# host='aws-0-eu-central-1.pooler.supabase.com'
+# port=6543 
+# dbname='postgres'
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -29,7 +37,7 @@ SECRET_KEY = "django-insecure-cq%g*_fqk@pb26cjo8d3j*d!a-52wfo-gufoqln%qf)gw$f_3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082']
 
 
 # Application definition
@@ -85,14 +93,29 @@ WSGI_APPLICATION = "radar.wsgi.application"
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'if0_36685803_radar',
+#         'USER': 'if0_36685803',
+#         'PASSWORD': 'Trust2308',
+#         'HOST': 'sql313.infinityfree.com',  # Or your remote host
+#         'PORT': '3306',       # Or your custom port if different
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'radar',
-        'USER': 'admin',
-        'PASSWORD': 'Trust.2308',
-        'HOST': 'localhost',  # Or your remote host
-        'PORT': '3306',       # Or your custom port if different
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',        # Replace with your database name
+        'USER': 'postgres.jjsgxbyfigzfmowswvpt',        # Replace with your database user
+        'PASSWORD': 'Trust.2308Trust',# Replace with your database password
+        'HOST': 'aws-0-eu-central-1.pooler.supabase.com',        # Replace with your database host (e.g., db.supabase.co)
+        'PORT': '6543',        # Replace with your database port, typically 5432 for PostgreSQL
+        'OPTIONS': {
+            'sslmode': 'require',                 # Ensure SSL mode is set to require
+            'client_encoding': 'UTF8',            # Ensure client encoding is set to UTF8
+        }
     }
 }
 
