@@ -37,7 +37,7 @@ SECRET_KEY = "django-insecure-cq%g*_fqk@pb26cjo8d3j*d!a-52wfo-gufoqln%qf)gw$f_3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082']
+ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082', '127.0.0.1']
 
 
 # Application definition
@@ -93,31 +93,31 @@ WSGI_APPLICATION = "radar.wsgi.application"
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'if0_36685803_radar',
-#         'USER': 'if0_36685803',
-#         'PASSWORD': 'Trust2308',
-#         'HOST': 'sql313.infinityfree.com',  # Or your remote host
-#         'PORT': '3306',       # Or your custom port if different
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',        # Replace with your database name
-        'USER': 'postgres.jjsgxbyfigzfmowswvpt',        # Replace with your database user
-        'PASSWORD': 'Trust.2308Trust',# Replace with your database password
-        'HOST': 'aws-0-eu-central-1.pooler.supabase.com',        # Replace with your database host (e.g., db.supabase.co)
-        'PORT': '6543',        # Replace with your database port, typically 5432 for PostgreSQL
-        'OPTIONS': {
-            'sslmode': 'require',                 # Ensure SSL mode is set to require
-            'client_encoding': 'UTF8',            # Ensure client encoding is set to UTF8
-        }
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'radar',
+        'USER': 'admin',
+        'PASSWORD': 'pxPqLxwN',
+        'HOST': 'mysql-174995-0.cloudclusters.net',  # Or your remote host
+        'PORT': '10011',       # Or your custom port if different
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'postgres',        # Replace with your database name
+#         'USER': 'postgres.jjsgxbyfigzfmowswvpt',        # Replace with your database user
+#         'PASSWORD': 'Trust.2308Trust',# Replace with your database password
+#         'HOST': 'aws-0-eu-central-1.pooler.supabase.com',        # Replace with your database host (e.g., db.supabase.co)
+#         'PORT': '6543',        # Replace with your database port, typically 5432 for PostgreSQL
+#         'OPTIONS': {
+#             'sslmode': 'require',                 # Ensure SSL mode is set to require
+#             'client_encoding': 'UTF8',            # Ensure client encoding is set to UTF8
+#         }
+#     }
+# }
 
 
 # Password validation
