@@ -37,7 +37,7 @@ SECRET_KEY = "django-insecure-cq%g*_fqk@pb26cjo8d3j*d!a-52wfo-gufoqln%qf)gw$f_3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082', '127.0.0.1']
+ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082', '127.0.0.1', '163.123.183.90']
 
 
 # Application definition
