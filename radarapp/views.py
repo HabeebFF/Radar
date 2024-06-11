@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django.http import HttpRequest, JsonResponse
+from django.contrib.auth.hashers import check_password
 import paystack
 import requests
 import json
@@ -69,3 +70,48 @@ def signup(request):
         return Response({'status': 'success', 'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
     else:
         return Response({'status': 'error', 'errors': result['errors']}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def login(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    if not email or not password:
+        return Response({"error": "Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Assuming you're using email as the username field
+    try:
+        user = Users.objects.get(email=email)
+
+        if user.is_verified == False:
+            return Response({"error": "User is unverified."}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Users.DoesNotExist:
+        return Response({"error": "Invalid email or password."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # user = authenticate(username=user.username, password=password)
+
+    if user.isverified and password == user.password:
+        # token, created = Token.objects.get_or_create(user=user)
+        return Response({"successful": "Login Successful"}, status=status.HTTP_200_OK)
+    else:
+        return Response({"error": "Invalid email or password."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['POST'])
+@transaction.atomic  # Ensuring atomicity for the select_for_update block
+def verify_user(request):
+    email = request.data.get("email")
+
+    if not email:
+        return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.select_for_update().get(email=email)
+        user.is_verified = True
+        user.save()
+        return Response({"success": "User Verified Successfully"}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)

@@ -21,4 +21,6 @@ from radarapp.views import *
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("signup/", signup, name="signup"),
+    path("login/", login, name="login"),
+    path("verify_user/", verify_user, name="verify_user"),
 ]

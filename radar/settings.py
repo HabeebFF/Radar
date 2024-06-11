@@ -86,23 +86,23 @@ WSGI_APPLICATION = "radar.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'radar',
-        'USER': 'admin',
-        'PASSWORD': 'pxPqLxwN',
-        'HOST': 'mysql-174995-0.cloudclusters.net',  # Or your remote host
-        'PORT': '10011',       # Or your custom port if different
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'radar',
+#         'USER': 'admin',
+#         'PASSWORD': 'pxPqLxwN',
+#         'HOST': 'mysql-174995-0.cloudclusters.net',  # Or your remote host
+#         'PORT': '10011',       # Or your custom port if different
+#     }
+# }
 
 # DATABASES = {
 #     'default': {

@@ -12,6 +12,7 @@ class Users(AbstractUser):
     full_name = models.CharField(max_length=60, null=False)
     password = models.CharField(max_length=120, null=False)
     user_type = models.CharField(max_length=10)
+    is_verified = models.BooleanField(default=False)
 
 
 class Wallets(models.Model):
