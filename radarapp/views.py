@@ -92,7 +92,7 @@ def login(request):
 
     # user = authenticate(username=user.username, password=password)
 
-    if user.isverified and password == user.password:
+    if user.is_verified and password == user.password:
         # token, created = Token.objects.get_or_create(user=user)
         return Response({"successful": "Login Successful"}, status=status.HTTP_200_OK)
     else:
