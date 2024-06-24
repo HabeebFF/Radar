@@ -28,6 +28,9 @@ import io
 import qrcode
 from django.http import HttpResponse
 from concurrent.futures import ThreadPoolExecutor
+import logging
+
+logger = logging.getLogger(__name__)
 # Create your views here.
 
 
@@ -162,6 +165,101 @@ def login(request):
     else:
         # Authentication failed, return error response
         return Response({'message': 'Invalid username/email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
+def forgot_password(request):
+    email = request.data.get('email')
+    
+    if not email:
+        return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Generate a random 6-digit token
+    token = ''.join(random.choices('0123456789', k=6))
+    
+    # Create or update the verification token for the user
+    verification_token, created = VerificationToken.objects.update_or_create(
+        user_email=email,
+        defaults={'token': token, 'created_at': timezone.now()}
+    )
+    
+    # Send email with the token
+    sender_email = 'habeebmuftau05@gmail.com'
+    receiver_email = email
+    password = 'jvbe whjo lnwe pwxu'  # Use environment variables for sensitive information
+    subject = 'Verify Email'
+    message = f'''Hi,
+
+    Your Verification Token Is: {token}
+    
+    Please use it to verify your account'''
+
+    # try:
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(message, 'plain'))
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(sender_email, password)
+    server.sendmail(sender_email, receiver_email, msg.as_string())
+    server.quit()
+    # except Exception as e:
+    #     logger.error(f"Failed to send email to {email}: {str(e)}")
+    #     return Response({"error": "Failed to send verification email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    return Response({"message": "Password reset token sent to email"}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def verify_forgot_password_token(request):
+    email = request.data.get('email')
+    token = request.data.get('token')
+    
+    if not email or not token:
+        return Response({"error": "Email and token are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        verification_token = VerificationToken.objects.get(user_email=email)
+        
+        # Check if the token is valid
+        if verification_token.token == token and verification_token.is_valid():
+            # Token is valid, delete the verification token
+            verification_token.delete()
+
+            return Response({"success": "Token Valid"}, status=status.HTTP_202_ACCEPTED)
+        else:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    except VerificationToken.DoesNotExist:
+        return Response({"error": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+    # except Exception as e:
+    #     logger.error(f"Error during token verification for {email}: {str(e)}")
+    #     return Response({"error": "An error occurred during verification"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def change_password_fp(request):
+    email = request.data.get('email')
+    new_password = request.data.get('new_password')
+    
+    if not email or not new_password:
+        return Response({"error": "Email and new password are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = Users.objects.get(email=email)
+        user.password = make_password(new_password)
+        user.save()
+        
+        return Response({"success": "Password changed successfully"}, status=status.HTTP_200_OK)
+    
+    except Users.DoesNotExist:
+        return Response({"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Failed to change password for {email}: {str(e)}")
+        return Response({"error": "An error occurred while changing the password"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

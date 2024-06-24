@@ -26,5 +26,8 @@ urlpatterns = [
     path("change-fullname/", change_fullname, name="change_fullname"),
     path("change-username/", change_username, name="change_username"),
     path("change-email/", change_email, name="change_email"),
-    path("verify-new-email/", verify_new_email, name="verify_new-email")
+    path("verify-new-email/", verify_new_email, name="verify_new-email"),
+    path("forgot-password/send-token/", forgot_password, name="forgot_password"),
+    path("forgot-password/verify-token/", verify_forgot_password_token, name="verify_forgot_password_token"),
+    path("forgot-password/change-password/", change_password_fp, name="change_password_fp"),
 ]
