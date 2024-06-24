@@ -22,5 +22,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("signup/", signup, name="signup"),
     path("login/", login, name="login"),
-    path("verify-token/", verify_token, name="verify_token")
+    path("verify-token/", verify_token, name="verify_token"),
+    path("change-fullname/", change_fullname, name="change_fullname"),
+    path("change-username/", change_username, name="change_username"),
+    path("change-email/", change_email, name="change_email"),
+    path("verify-new-email/", verify_new_email, name="verify_new-email")
 ]
