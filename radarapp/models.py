@@ -49,3 +49,20 @@ class VerificationToken(models.Model):
     def is_valid(self):
         now = datetime.datetime.now(datetime.timezone.utc)
         return now - self.created_at < datetime.timedelta(minutes=10)
+
+
+class Ticket(models.Model):
+    ticket_id = models.AutoField(primary_key=True)
+    user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
+    trip_type = models.CharField(max_length=10)
+    from_loc = models.CharField(max_length=15)
+    to_loc = models.CharField(max_length=15)
+    transport_date = models.DateField()
+    transport_time = models.TimeField()
+    date_booked = models.DateField()
+    time_booked = models.TimeField()
+
+
+class Transaction(models.Model):
+    transactions_id = models.AutoField(primary_key=True)
+    

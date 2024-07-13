@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import UserProfile, UserWallet, Users, VerificationToken
+from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken
 from .serializers import UserSerializer, DriverSerializer
 from django.contrib.auth import authenticate
 from django.db import transaction
@@ -94,7 +94,7 @@ def signup(request):
         server.sendmail(sender_email, receiver_email, msg.as_string())
 
         server.quit()
-        return Response({"message": "Verification token sent to email"}, status=status.HTTP_200_OK)
+        return Response({"status": "success", "message": "Verification token sent to email"}, status=status.HTTP_200_OK)
 
         
         # future = executor.submit(create_user, data)
@@ -142,14 +142,14 @@ def verify_token(request):
 
                     return Response({'status': 'success', 'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
                 else:
-                    return Response({'status': 'error', 'errors': result['errors']}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'status': 'error', 'message': result['errors']}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"status": "error", "message": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "error", "message": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
     
     except VerificationToken.DoesNotExist:
-        return Response({"error": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def login(request):
@@ -161,10 +161,10 @@ def login(request):
     
     if user is not None:
         # User is authenticated, return success response
-        return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
+        return Response({"status": "success", 'message': 'Login successful'}, status=status.HTTP_200_OK)
     else:
         # Authentication failed, return error response
-        return Response({'message': 'Invalid username/email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"status": "error", 'message': 'Invalid username/email or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['POST'])
@@ -210,7 +210,7 @@ def forgot_password(request):
     #     logger.error(f"Failed to send email to {email}: {str(e)}")
     #     return Response({"error": "Failed to send verification email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    return Response({"message": "Password reset token sent to email"}, status=status.HTTP_200_OK)
+    return Response({"status": "success", "message": "Password reset token sent to email"}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -219,7 +219,7 @@ def verify_forgot_password_token(request):
     token = request.data.get('token')
     
     if not email or not token:
-        return Response({"error": "Email and token are required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "Email and token are required"}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         verification_token = VerificationToken.objects.get(user_email=email)
@@ -229,12 +229,12 @@ def verify_forgot_password_token(request):
             # Token is valid, delete the verification token
             verification_token.delete()
 
-            return Response({"success": "Token Valid"}, status=status.HTTP_202_ACCEPTED)
+            return Response({"status": "success", "message": "Token Valid"}, status=status.HTTP_202_ACCEPTED)
         else:
-            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "error", "message": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
     
     except VerificationToken.DoesNotExist:
-        return Response({"error": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
     # except Exception as e:
     #     logger.error(f"Error during token verification for {email}: {str(e)}")
     #     return Response({"error": "An error occurred during verification"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -246,20 +246,20 @@ def change_password_fp(request):
     new_password = request.data.get('new_password')
     
     if not email or not new_password:
-        return Response({"error": "Email and new password are required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "Email and new password are required"}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         user = Users.objects.get(email=email)
         user.password = make_password(new_password)
         user.save()
         
-        return Response({"success": "Password changed successfully"}, status=status.HTTP_200_OK)
+        return Response({"status": "success", "message": "Password changed successfully"}, status=status.HTTP_200_OK)
     
     except Users.DoesNotExist:
-        return Response({"error": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "User does not exist"}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Failed to change password for {email}: {str(e)}")
-        return Response({"error": "An error occurred while changing the password"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"status":"error", "message": "An error occurred while changing the password"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -268,18 +268,18 @@ def change_fullname(request):
     new_fullname = request.data.get('new_fullname')
 
     if not user_id or not new_fullname:
-        return Response({'error': 'User ID and new full name are required'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'error', 'message': 'User ID and new full name are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         with transaction.atomic():
             user = Users.objects.select_for_update().get(user_id=user_id)
             user.full_name = new_fullname
             user.save()
-        return Response({'message': 'Full name changed successfully'}, status=status.HTTP_200_OK)
+        return Response({'status': 'success', 'message': 'Full name changed successfully'}, status=status.HTTP_200_OK)
     except Users.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'status': 'error', 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -288,23 +288,23 @@ def change_username(request):
     new_username = request.data.get('new_username')
 
     if not user_id or not new_username:
-        return Response({"error": "User ID and new username are required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': "error", "message": "User ID and new username are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         # Check if the new username is already in use
         if Users.objects.filter(username=new_username).exists():
-            return Response({"error": "Username already in use"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "error", "message": "Username already in use"}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             user = Users.objects.select_for_update().get(user_id=user_id)
             user.username = new_username
             user.save()
 
-        return Response({'message': 'Username changed successfully'}, status=status.HTTP_200_OK)
+        return Response({'status': 'success', 'message': 'Username changed successfully'}, status=status.HTTP_200_OK)
     except Users.DoesNotExist:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -313,10 +313,10 @@ def change_email(request):
     new_email = request.data.get('new_email')
 
     if not user_id or not new_email:
-        return Response({"error": "User ID and new email are required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "User ID and new email are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     if Users.objects.filter(email=new_email).exists():
-        return Response({"error": "Email already in use"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "Email already in use"}, status=status.HTTP_400_BAD_REQUEST)
 
     token = ''.join(random.choices('0123456789', k=6))
 
@@ -347,7 +347,7 @@ Please use it to verify your account'''
     server.sendmail(sender_email, receiver_email, msg.as_string())
     server.quit()
 
-    return Response({"message": "Verification token sent to email"}, status=status.HTTP_200_OK)
+    return Response({"status": "success", "message": "Verification token sent to email"}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -357,7 +357,7 @@ def verify_new_email(request):
     token = request.data.get('token')
 
     if not user_id or not new_email or not token:
-        return Response({"error": "User ID, new email, and token are required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "User ID, new email, and token are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         verification_token = VerificationToken.objects.get(user_email=new_email)
@@ -369,12 +369,148 @@ def verify_new_email(request):
                 user.save()
                 verification_token.delete()
 
-            return Response({"message": "Email changed successfully"}, status=status.HTTP_200_OK)
+            return Response({"status": "success", "message": "Email changed successfully"}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": "error", "message": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
     except VerificationToken.DoesNotExist:
-        return Response({"error": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": "error", "message": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
     except Users.DoesNotExist:
-        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def convert_date_format(date_str):
+    try:
+        # Parse the input string to a datetime object
+        input_date = datetime.strptime(date_str, "%d-%m-%Y")
+        # Format the datetime object to the desired output string
+        output_date = input_date.strftime("%Y-%m-%d")
+        return output_date
+    except ValueError:
+        return "Invalid date format. Please use dd-mm-yyyy."
+
+
+@api_view(['POST'])
+def book_ticket(request):
+    user_id = request.data.get('user_id')
+    trip_type = request.data.get('trip_type')
+    from_loc = request.data.get('from_loc')
+    to_loc = request.data.get('to_loc')
+    transport_date = request.data.get('transport_date')
+    price = request.data.get('price')
+
+    if None in [user_id, trip_type, from_loc, to_loc, transport_date, price]:
+        return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    if trip_type == 'one_way':
+        with transaction.atomic():
+            try:
+                wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
+                if wallet.wallet_balance < price:
+                    return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+
+                wallet.wallet_balance = float(wallet.wallet_balance) - price
+                wallet.save()
+
+                Ticket.objects.create(
+                    user_id=user,
+                    trip_type=trip_type,
+                    from_loc=from_loc,
+                    to_loc=to_loc,
+                    transport_date=convert_date_format(transport_date),
+                    price=price
+                )
+
+                # booked_ticket = {
+                #     "user_id": user_id,
+                #     "trip_type": trip_type,
+                #     "from_loc": from_loc,
+                #     "to_loc": to_loc,
+                #     "transport_date": transport_date,
+                #     "price":price
+                # }
+
+                return Response({"message": "Booking Successful"}, status=status.HTTP_200_OK)
+            except UserWallet.DoesNotExist:
+                return Response({'error': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    elif trip_type == 'round_trip':
+        with transaction.atomic():
+            try:
+                wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
+                if wallet.wallet_balance < price:
+                    return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+
+                wallet.wallet_balance = float(wallet.wallet_balance) - price
+                wallet.save()
+
+                Ticket.objects.create(
+                    user_id=user,
+                    trip_type=trip_type,
+                    from_loc=from_loc,
+                    to_loc=to_loc,
+                    transport_date=convert_date_format(transport_date),
+                    price=price
+                )
+
+                # booked_ticket = {
+                #     "user_id": user_id,
+                #     "trip_type": trip_type,
+                #     "from_loc": from_loc,
+                #     "to_loc": to_loc,
+                #     "transport_date": transport_date,
+                #     "price":price
+                # }
+                return Response({"message": "Booking Successful"}, status=status.HTTP_200_OK)
+            except UserWallet.DoesNotExist:
+                return Response({'error': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    else:
+        return Response({'error': 'Invalid trip type'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def get_ticket_price(request):
+    from_loc = request.data.get('from_loc')
+    to_loc = request.data.get('to_loc')
+    trip_type = request.data.get('trip_type')
+
+    prices = {
+        ("mushin", "costain"): 100,
+        ("mushin", "ilupeju"): 150,
+        ("mushin", "oshodi"): 200,
+        ("mushin", "yaba"): 250,
+        ("costain", "mushin"): 100,
+        ("costain", "ilupeju"): 150,
+        ("costain", "oshodi"): 200,
+        ("costain", "yaba"): 250,
+        ("ilupeju", "mushin"): 150,
+        ("ilupeju", "costain"): 200,
+        ("ilupeju", "oshodi"): 250,
+        ("ilupeju", "yaba"): 300,
+        ("oshodi", "mushin"): 200,
+        ("oshodi", "costain"): 250,
+        ("oshodi", "ilupeju"): 300,
+        ("oshodi", "yaba"): 350,
+        ("yaba", "mushin"): 250,
+        ("yaba", "costain"): 300,
+        ("yaba", "ilupeju"): 350,
+        ("yaba", "oshodi"): 400,
+    }
+
+    if (from_loc.lower(), to_loc.lower()) in prices:
+        price = prices[(from_loc.lower(), to_loc.lower())]
+        # print(price)
+        if trip_type == "one_way":
+            return Response({'price': price}, status=status.HTTP_200_OK)
+        elif trip_type == "round_trip":
+            price = price * 2
+
+            price = price - (price * 0.15)
+            return Response({'price': price}, status=status.HTTP_200_OK)
+    else:
+        return Response({'error': 'Invalid locations'})
