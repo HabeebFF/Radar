@@ -401,19 +401,19 @@ def book_ticket(request):
     price = request.data.get('price')
 
     if None in [user_id, trip_type, from_loc, to_loc, transport_date, price]:
-        return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"status": 'error', "message": 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         user = Users.objects.get(user_id=user_id)
     except Users.DoesNotExist:
-        return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"status": 'error', 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
     if trip_type == 'one_way':
         with transaction.atomic():
             try:
                 wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
                 if wallet.wallet_balance < price:
-                    return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'status': 'error', 'message': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
 
                 wallet.wallet_balance = float(wallet.wallet_balance) - price
                 wallet.save()
@@ -436,15 +436,15 @@ def book_ticket(request):
                 #     "price":price
                 # }
 
-                return Response({"message": "Booking Successful"}, status=status.HTTP_200_OK)
+                return Response({'status': 'success', "message": "Booking Successful"}, status=status.HTTP_200_OK)
             except UserWallet.DoesNotExist:
-                return Response({'error': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'status': 'error', 'message': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
     elif trip_type == 'round_trip':
         with transaction.atomic():
             try:
                 wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
                 if wallet.wallet_balance < price:
-                    return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'status': 'error', 'message': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
 
                 wallet.wallet_balance = float(wallet.wallet_balance) - price
                 wallet.save()
@@ -466,11 +466,11 @@ def book_ticket(request):
                 #     "transport_date": transport_date,
                 #     "price":price
                 # }
-                return Response({"message": "Booking Successful"}, status=status.HTTP_200_OK)
+                return Response({'status': 'success', "message": "Booking Successful"}, status=status.HTTP_200_OK)
             except UserWallet.DoesNotExist:
-                return Response({'error': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'status': 'error', 'message': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        return Response({'error': 'Invalid trip type'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'error', 'message': 'Invalid trip type'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -506,11 +506,11 @@ def get_ticket_price(request):
         price = prices[(from_loc.lower(), to_loc.lower())]
         # print(price)
         if trip_type == "one_way":
-            return Response({'price': price}, status=status.HTTP_200_OK)
+            return Response({'status': 'success', 'price': price}, status=status.HTTP_200_OK)
         elif trip_type == "round_trip":
             price = price * 2
 
             price = price - (price * 0.15)
-            return Response({'price': price}, status=status.HTTP_200_OK)
+            return Response({'status': 'success', 'price': price}, status=status.HTTP_200_OK)
     else:
-        return Response({'error': 'Invalid locations'})
+        return Response({'status': 'error', 'message': 'Invalid locations'})
