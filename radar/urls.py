@@ -30,4 +30,5 @@ urlpatterns = [
     path("forgot-password/send-token/", forgot_password, name="forgot_password"),
     path("forgot-password/verify-token/", verify_forgot_password_token, name="verify_forgot_password_token"),
     path("forgot-password/change-password/", change_password_fp, name="change_password_fp"),
+    path('get-ticket-price/', get_ticket_price, name="get_ticket_price"),
 ]
