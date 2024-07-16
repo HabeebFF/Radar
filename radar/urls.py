@@ -31,4 +31,8 @@ urlpatterns = [
     path("forgot-password/verify-token/", verify_forgot_password_token, name="verify_forgot_password_token"),
     path("forgot-password/change-password/", change_password_fp, name="change_password_fp"),
     path('get-ticket-price/', get_ticket_price, name="get_ticket_price"),
+    path('book-ticket/', book_ticket, name='book_ticket'),
+    path('get-username/', get_username, name='get_username'),
+    path('get-wallet-balance/', get_wallet_balance, name='get_wallet_balance'),
+    path('get-locations/', get_locations, name='get_locations'),
 ]
