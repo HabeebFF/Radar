@@ -518,7 +518,7 @@ def get_ticket_price(request):
 
 
 @api_view(['POST'])
-def booking_ticket(request):
+def book_ticket(request):
     trip_type = request.data.get('trip_type')
     ticket_type = request.data.get('ticket_type')
     user_id = request.data.get('user_id')
@@ -621,5 +621,11 @@ def get_wallet_balance(request):
         return Response({"status": "error", "message": "Wallet not found for user"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_locations(request):
+    locations = ['mushin', 'costain', 'ilupeju', 'yaba', 'oshodi', 'ikeja']
+    return Response({'status': 'success', 'message': locations}, status=status.HTTP_200_OK)
 
 
