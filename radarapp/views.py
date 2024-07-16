@@ -641,10 +641,10 @@ def get_first_three_transactions(request):
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    try:
-        transactions = Transaction.objects.filter(user=user)[:3]
-    except Exception as e:
-        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    transactions = Transaction.objects.filter(user=user)[:3]
+
+    if not transactions:
+        return Response({"status": "success", "message": "No transactions found"}, status=status.HTTP_200_OK)
 
     transactions_list = []
 
@@ -658,4 +658,3 @@ def get_first_three_transactions(request):
         transactions_list.append(my_transc_dict)
 
     return Response({"status": "success", "transactions": transactions_list}, status=status.HTTP_200_OK)
-    
