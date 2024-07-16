@@ -36,4 +36,5 @@ urlpatterns = [
     path('get-wallet-balance/', get_wallet_balance, name='get_wallet_balance'),
     path('get-locations/', get_locations, name='get_locations'),
     path('get-first-three-transactions/', get_first_three_transactions, name='get_first_three_transactions'),
+    path('get-all-transactions/', get_all_transactions, name="get_all_transactions"),
 ]
