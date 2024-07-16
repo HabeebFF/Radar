@@ -391,86 +391,86 @@ def convert_date_format(date_str):
         return "Invalid date format. Please use dd-mm-yyyy."
 
 
-@api_view(['POST'])
-def book_ticket(request):
-    user_id = request.data.get('user_id')
-    trip_type = request.data.get('trip_type')
-    from_loc = request.data.get('from_loc')
-    to_loc = request.data.get('to_loc')
-    transport_date = request.data.get('transport_date')
-    price = request.data.get('price')
+# @api_view(['POST'])
+# def book_ticket(request):
+#     user_id = request.data.get('user_id')
+#     trip_type = request.data.get('trip_type')
+#     from_loc = request.data.get('from_loc')
+#     to_loc = request.data.get('to_loc')
+#     transport_date = request.data.get('transport_date')
+#     price = request.data.get('price')
 
-    if None in [user_id, trip_type, from_loc, to_loc, transport_date, price]:
-        return Response({"status": 'error', "message": 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+#     if None in [user_id, trip_type, from_loc, to_loc, transport_date, price]:
+#         return Response({"status": 'error', "message": 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        user = Users.objects.get(user_id=user_id)
-    except Users.DoesNotExist:
-        return Response({"status": 'error', 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+#     try:
+#         user = Users.objects.get(user_id=user_id)
+#     except Users.DoesNotExist:
+#         return Response({"status": 'error', 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
-    if trip_type == 'one_way':
-        with transaction.atomic():
-            try:
-                wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
-                if wallet.wallet_balance < price:
-                    return Response({'status': 'error', 'message': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+#     if trip_type == 'one_way':
+#         with transaction.atomic():
+#             try:
+#                 wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
+#                 if wallet.wallet_balance < price:
+#                     return Response({'status': 'error', 'message': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
 
-                wallet.wallet_balance = float(wallet.wallet_balance) - price
-                wallet.save()
+#                 wallet.wallet_balance = float(wallet.wallet_balance) - price
+#                 wallet.save()
 
-                Ticket.objects.create(
-                    user_id=user,
-                    trip_type=trip_type,
-                    from_loc=from_loc,
-                    to_loc=to_loc,
-                    transport_date=convert_date_format(transport_date),
-                    price=price
-                )
+#                 Ticket.objects.create(
+#                     user_id=user,
+#                     trip_type=trip_type,
+#                     from_loc=from_loc,
+#                     to_loc=to_loc,
+#                     transport_date=convert_date_format(transport_date),
+#                     price=price
+#                 )
 
-                # booked_ticket = {
-                #     "user_id": user_id,
-                #     "trip_type": trip_type,
-                #     "from_loc": from_loc,
-                #     "to_loc": to_loc,
-                #     "transport_date": transport_date,
-                #     "price":price
-                # }
+#                 # booked_ticket = {
+#                 #     "user_id": user_id,
+#                 #     "trip_type": trip_type,
+#                 #     "from_loc": from_loc,
+#                 #     "to_loc": to_loc,
+#                 #     "transport_date": transport_date,
+#                 #     "price":price
+#                 # }
 
-                return Response({'status': 'success', "message": "Booking Successful"}, status=status.HTTP_200_OK)
-            except UserWallet.DoesNotExist:
-                return Response({'status': 'error', 'message': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
-    elif trip_type == 'round_trip':
-        with transaction.atomic():
-            try:
-                wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
-                if wallet.wallet_balance < price:
-                    return Response({'status': 'error', 'message': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+#                 return Response({'status': 'success', "message": "Booking Successful"}, status=status.HTTP_200_OK)
+#             except UserWallet.DoesNotExist:
+#                 return Response({'status': 'error', 'message': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
+#     elif trip_type == 'round_trip':
+#         with transaction.atomic():
+#             try:
+#                 wallet = UserWallet.objects.select_for_update().get(user_id=user_id)
+#                 if wallet.wallet_balance < price:
+#                     return Response({'status': 'error', 'message': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
 
-                wallet.wallet_balance = float(wallet.wallet_balance) - price
-                wallet.save()
+#                 wallet.wallet_balance = float(wallet.wallet_balance) - price
+#                 wallet.save()
 
-                Ticket.objects.create(
-                    user_id=user,
-                    trip_type=trip_type,
-                    from_loc=from_loc,
-                    to_loc=to_loc,
-                    transport_date=convert_date_format(transport_date),
-                    price=price
-                )
+#                 Ticket.objects.create(
+#                     user_id=user,
+#                     trip_type=trip_type,
+#                     from_loc=from_loc,
+#                     to_loc=to_loc,
+#                     transport_date=convert_date_format(transport_date),
+#                     price=price
+#                 )
 
-                # booked_ticket = {
-                #     "user_id": user_id,
-                #     "trip_type": trip_type,
-                #     "from_loc": from_loc,
-                #     "to_loc": to_loc,
-                #     "transport_date": transport_date,
-                #     "price":price
-                # }
-                return Response({'status': 'success', "message": "Booking Successful"}, status=status.HTTP_200_OK)
-            except UserWallet.DoesNotExist:
-                return Response({'status': 'error', 'message': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
-    else:
-        return Response({'status': 'error', 'message': 'Invalid trip type'}, status=status.HTTP_400_BAD_REQUEST)
+#                 # booked_ticket = {
+#                 #     "user_id": user_id,
+#                 #     "trip_type": trip_type,
+#                 #     "from_loc": from_loc,
+#                 #     "to_loc": to_loc,
+#                 #     "transport_date": transport_date,
+#                 #     "price":price
+#                 # }
+#                 return Response({'status': 'success', "message": "Booking Successful"}, status=status.HTTP_200_OK)
+#             except UserWallet.DoesNotExist:
+#                 return Response({'status': 'error', 'message': 'Wallet does not exist'}, status=status.HTTP_404_NOT_FOUND)
+#     else:
+#         return Response({'status': 'error', 'message': 'Invalid trip type'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -514,3 +514,112 @@ def get_ticket_price(request):
             return Response({'status': 'success', 'price': price}, status=status.HTTP_200_OK)
     else:
         return Response({'status': 'error', 'message': 'Invalid locations'})
+
+
+
+@api_view(['POST'])
+def booking_ticket(request):
+    trip_type = request.data.get('trip_type')
+    ticket_type = request.data.get('ticket_type')
+    user_id = request.data.get('user_id')
+    radar_ticket_id = request.data.get('radar_ticket_id')
+    date_booked = request.data.get('date_booked')
+    time_booked = request.data.get('time_booked')
+    buy_for_self = request.data.get('buy_for_self')
+    mp_ticket_list = request.data.get('mp_ticket_list')
+    
+    if not all([trip_type, ticket_type, user_id, radar_ticket_id, date_booked, time_booked]):
+        return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
+        return Ticket.objects.create(
+            user_id=user_id,
+            radar_ticket_id=radar_ticket_id,
+            trip_type=trip_type,
+            date_booked=date_booked,
+            time_booked=time_booked,
+            ticket_type=ticket_type,
+            num_of_tickets_bought=num_of_tickets_bought,
+            bought_by=bought_by
+        )
+
+    try:
+        if trip_type == "one_way":
+            if ticket_type == "sp":
+                create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type)
+            elif ticket_type == "mp":
+                if buy_for_self:
+                    num_of_tickets_bought = len(mp_ticket_list)
+                    create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                
+                for mp_ticket in mp_ticket_list:
+                    create_ticket(mp_ticket['user_id'], mp_ticket['radar_ticket_id'], trip_type, mp_ticket['date_booked'], mp_ticket['time_booked'], ticket_type, bought_by=user_id)
+        
+        elif trip_type == "round_trip":
+            radar_ticket1_id = request.data.get('radar_ticket1_id')
+            radar_ticket2_id = request.data.get('radar_ticket2_id')
+
+            if not all([radar_ticket1_id, radar_ticket2_id]):
+                return Response({"status": "error", "message": "Missing radar ticket IDs for round trip"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if ticket_type == 'sp':
+                create_ticket(user_id, radar_ticket1_id, trip_type, date_booked, time_booked, ticket_type)
+                create_ticket(user_id, radar_ticket2_id, trip_type, date_booked, time_booked, ticket_type)
+            
+            elif ticket_type == 'mp':
+                if buy_for_self:
+                    num_of_tickets_bought = len(mp_ticket_list)
+                    create_ticket(user_id, radar_ticket1_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                    create_ticket(user_id, radar_ticket2_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                
+                for mp_ticket in mp_ticket_list:
+                    create_ticket(mp_ticket['user_id'], mp_ticket['radar_ticket1_id'], trip_type, mp_ticket['date_booked'], mp_ticket['time_booked'], ticket_type, bought_by=user_id)
+                    create_ticket(mp_ticket['user_id'], mp_ticket['radar_ticket2_id'], trip_type, mp_ticket['date_booked'], mp_ticket['time_booked'], ticket_type, bought_by=user_id)
+        
+        return Response({"status": "success", "message": "Tickets booked successfully"}, status=status.HTTP_201_CREATED)
+    
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
+@api_view(["POST"])
+def get_username(request):
+    user_id = request.data.get("user_id")
+    
+    if not user_id:
+        return Response({"status": "error", "message": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+        username = user.username
+        return Response({"status": "success", "message": username}, status=status.HTTP_200_OK)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def get_wallet_balance(request):
+    user_id = request.data.get('user_id')
+    
+    if not user_id:
+        return Response({"status": "error", "message": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    try:
+        wallet = UserWallet.objects.get(user=user)
+        wallet_balance = wallet.wallet_balance
+        return Response({"status": "success", "message": str(wallet_balance)}, status=status.HTTP_200_OK)
+    except UserWallet.DoesNotExist:
+        return Response({"status": "error", "message": "Wallet not found for user"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
