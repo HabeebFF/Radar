@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken
+from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken, Transaction
 from .serializers import UserSerializer, DriverSerializer
 from django.contrib.auth import authenticate
 from django.db import transaction
@@ -629,3 +629,33 @@ def get_locations(request):
     return Response({'status': 'success', 'message': locations}, status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+def get_first_three_transactions(request):
+    user_id = request.data.get('user_id')
+
+    if not user_id:
+        return Response({"status": "error", "message": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        transactions = Transaction.objects.filter(user=user)[:3]
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    transactions_list = []
+
+    for transaction in transactions:
+        my_transc_dict = {
+            'amount': str(transaction.amount),
+            'transaction_date': str(transaction.transaction_date),
+            'transaction_type': transaction.transaction_type,
+            'status': transaction.status,
+        }
+        transactions_list.append(my_transc_dict)
+
+    return Response({"status": "success", "transactions": transactions_list}, status=status.HTTP_200_OK)
+    
