@@ -37,7 +37,7 @@ SECRET_KEY = "django-insecure-cq%g*_fqk@pb26cjo8d3j*d!a-52wfo-gufoqln%qf)gw$f_3l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082', '127.0.0.1', '163.123.183.90']
+ALLOWED_HOSTS = ['radar2.pythonanywhere.com', 'http://localhost:8081', 'http://localhost:8082', '127.0.0.1', '163.123.183.90', '*']
 
 
 # Application definition
@@ -50,17 +50,24 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "radarapp",
+    'rest_framework',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.moddleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+
 
 ROOT_URLCONF = "radar.urls"
 
@@ -78,6 +85,14 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "*",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "*",
 ]
 
 WSGI_APPLICATION = "radar.wsgi.application"
