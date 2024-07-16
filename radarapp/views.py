@@ -29,6 +29,7 @@ import qrcode
 from django.http import HttpResponse
 from concurrent.futures import ThreadPoolExecutor
 import logging
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 # Create your views here.
@@ -689,3 +690,79 @@ def get_all_transactions(request):
         transactions_list.append(my_transc_dict)
 
     return Response({"status": "success", "transactions": transactions_list}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def send_money(request):
+    sender_id = request.data.get('sender_id')
+    receiver_username = request.data.get('receiver_username')
+
+
+@api_view(['POST'])
+def send_money(request):
+    sender_id = request.data.get('sender_id')
+    receiver_username = request.data.get('receiver_username')
+    amount = request.data.get('amount')
+    wallet_pin = request.data.get('wallet_pin')
+
+    if not sender_id or not receiver_username or not amount or not wallet_pin:
+        return Response({"status": "error", "message": "sender_id, receiver_username, amount, and wallet_pin are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        amount = Decimal(amount)
+        if amount <= 0:
+            return Response({"status": "error", "message": "Amount must be greater than zero"}, status=status.HTTP_400_BAD_REQUEST)
+    except:
+        return Response({"status": "error", "message": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        sender = Users.objects.get(user_id=sender_id)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "Sender not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        receiver = Users.objects.get(username=receiver_username)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "Receiver not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        sender_wallet = UserWallet.objects.get(user=sender)
+    except UserWallet.DoesNotExist:
+        return Response({"status": "error", "message": "Sender's wallet not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        receiver_wallet = UserWallet.objects.get(user=receiver)
+    except UserWallet.DoesNotExist:
+        return Response({"status": "error", "message": "Receiver's wallet not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if sender_wallet.wallet_pin != wallet_pin:
+        return Response({"status": "error", "message": "Invalid wallet PIN"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if sender_wallet.wallet_balance < amount:
+        return Response({"status": "error", "message": "Insufficient balance"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Deduct the amount from sender's wallet
+    sender_wallet.wallet_balance -= amount
+    sender_wallet.save()
+
+    # Add the amount to receiver's wallet
+    receiver_wallet.wallet_balance += amount
+    receiver_wallet.save()
+
+    # Record the transaction for sender
+    Transaction.objects.create(
+        user=sender,
+        amount=amount,
+        transaction_type='debit',
+        status='completed'
+    )
+
+    # Record the transaction for receiver
+    Transaction.objects.create(
+        user=receiver,
+        amount=amount,
+        transaction_type='credit',
+        status='completed'
+    )
+
+    return Response({"status": "success", "message": "Money sent successfully"}, status=status.HTTP_200_OK)
