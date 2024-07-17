@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken, Transaction
 from .serializers import UserSerializer, DriverSerializer
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
@@ -162,6 +163,7 @@ def login(request):
     
     if user is not None:
         # User is authenticated, return success response
+        update_last_login(None, user)
         return Response({"status": "success", 'message': 'Login successful'}, status=status.HTTP_200_OK)
     else:
         # Authentication failed, return error response
@@ -766,3 +768,31 @@ def send_money(request):
     )
 
     return Response({"status": "success", "message": "Money sent successfully"}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def change_password_logged_in(request):
+    user_id = request.data.get('user_id')
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+
+    if not user_id or not old_password or not new_password:
+        return Response({"status": "error", "message": "user_id, old_password, and new_password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if not check_password(old_password, user.password):
+        return Response({"status": "error", "message": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if old_password == new_password:
+        return Response({"status": "error", "message": "New password cannot be the same as the old password"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    
+    update_last_login(None, user)
+
+    return Response({"status": "success", "message": "Password changed successfully"}, status=status.HTTP_200_OK)
