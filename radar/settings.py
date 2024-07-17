@@ -120,21 +120,6 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'postgres',        # Replace with your database name
-#         'USER': 'postgres.jjsgxbyfigzfmowswvpt',        # Replace with your database user
-#         'PASSWORD': 'Trust.2308Trust',# Replace with your database password
-#         'HOST': 'aws-0-eu-central-1.pooler.supabase.com',        # Replace with your database host (e.g., db.supabase.co)
-#         'PORT': '6543',        # Replace with your database port, typically 5432 for PostgreSQL
-#         'OPTIONS': {
-#             'sslmode': 'require',                 # Ensure SSL mode is set to require
-#             'client_encoding': 'UTF8',            # Ensure client encoding is set to UTF8
-#         }
-#     }
-# }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
