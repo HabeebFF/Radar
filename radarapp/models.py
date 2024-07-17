@@ -51,18 +51,37 @@ class VerificationToken(models.Model):
         return now - self.created_at < datetime.timedelta(minutes=10)
 
 
-class Ticket(models.Model):
-    ticket_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
-    trip_type = models.CharField(max_length=10)
+class RadarTicket(models.Model):
+    radar_ticket_id = models.AutoField(primary_key=True)
     from_loc = models.CharField(max_length=15)
     to_loc = models.CharField(max_length=15)
     transport_date = models.DateField()
     transport_time = models.TimeField()
+    num_of_buyers = models.IntegerField()
+
+
+class Ticket(models.Model):
+    ticket_id = models.AutoField(primary_key=True)
+    user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
+    radar_ticket_id = models.ForeignKey(RadarTicket, on_delete=models.CASCADE)
+    trip_type = models.CharField(max_length=10)
     date_booked = models.DateField()
     time_booked = models.TimeField()
+    ticket_type = models.CharField(default='sp')
+    bought_by = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    num_of_tickets_bought = models.IntegerField(null=True)
+    status = models.CharField(default='Pending')
+    expiration_date = models.DateField()
+    expiration_time = models.TimeField()
 
 
 class Transaction(models.Model):
-    transactions_id = models.AutoField(primary_key=True)
-    
+    transaction_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(Users, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_date = models.DateTimeField(auto_now_add=True)
+    transaction_type = models.CharField(max_length=10)  # Example values: 'deposit', 'withdrawal', etc.
+    status = models.CharField(max_length=10, default='Pending')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.amount} - {self.transaction_type}"

@@ -164,7 +164,12 @@ def login(request):
     if user is not None:
         # User is authenticated, return success response
         update_last_login(None, user)
-        return Response({"status": "success", 'message': 'Login successful'}, status=status.HTTP_200_OK)
+        return Response({
+                    "status": "success", 
+                    "message": "Login successful",
+                    "user_id": user.user_id,
+                    "email": user.email
+                }, status=status.HTTP_200_OK)    
     else:
         # Authentication failed, return error response
         return Response({"status": "error", 'message': 'Invalid username/email or password'}, status=status.HTTP_401_UNAUTHORIZED)
