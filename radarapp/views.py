@@ -31,6 +31,8 @@ from django.http import HttpResponse
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from decimal import Decimal
+import os
+from django.core.files import File
 
 logger = logging.getLogger(__name__)
 # Create your views here.
@@ -41,6 +43,15 @@ def index(request):
 
 
 executor = ThreadPoolExecutor(max_workers=10)
+
+
+def get_random_avatar(avatars_dir):
+    avatars = os.listdir(avatars_dir)
+    if avatars:
+        selected_avatar = random.choice(avatars)
+        return os.path.join(avatars_dir, selected_avatar)
+    return None
+
 
 def create_user(data):
     serializer = UserSerializer(data=data)
@@ -121,9 +132,7 @@ def verify_token(request):
     try:
         verification_token = VerificationToken.objects.get(user_email=email)
         
-        # Check if the token is valid
         if verification_token.token == token and verification_token.is_valid():
-            # Token is valid, create user and user profile
             data = request.data.copy()
             if 'password' in data:
                 data['password'] = make_password(data['password'])
@@ -133,13 +142,17 @@ def verify_token(request):
                 result = create_user(data)
                 if result['status'] == 'success':
                     user = result['user']
-
-                    UserProfile.objects.create(user=user)
-
-                    # Create User wallet
+                    
                     create_user_wallet(user=user)
+                    
+                    # Select a random profile picture
+                    avatar_folder = os.path.join(settings.MEDIA_ROOT, 'avatars')
+                    avatar_files = os.listdir(avatar_folder)
+                    random_avatar = random.choice(avatar_files)
 
-                    # Delete the used token
+                    # Create UserProfile with the selected avatar
+                    UserProfile.objects.create(user=user, profile_picture=f'avatars/{random_avatar}')
+
                     verification_token.delete()
 
                     return Response({'status': 'success', 'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
@@ -152,6 +165,7 @@ def verify_token(request):
     
     except VerificationToken.DoesNotExist:
         return Response({"status": "error", "message": "Token does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 def login(request):
