@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from radarapp.views import *
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -40,3 +42,6 @@ urlpatterns = [
     path('send-money/', send_money, name='send_money'),
     path('change-password-logged-in/', change_password_logged_in, name='change_password_logged_in')
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

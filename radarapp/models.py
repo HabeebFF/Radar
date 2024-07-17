@@ -62,17 +62,18 @@ class RadarTicket(models.Model):
 
 class Ticket(models.Model):
     ticket_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='tickets')
     radar_ticket_id = models.ForeignKey(RadarTicket, on_delete=models.CASCADE)
     trip_type = models.CharField(max_length=10)
     date_booked = models.DateField()
     time_booked = models.TimeField()
-    ticket_type = models.CharField(default='sp')
-    bought_by = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    ticket_type = models.CharField(max_length=10, default='sp')  # Add max_length
+    bought_by = models.ForeignKey(Users, on_delete=models.CASCADE, null=True, related_name='bought_tickets')
     num_of_tickets_bought = models.IntegerField(null=True)
-    status = models.CharField(default='Pending')
+    status = models.CharField(max_length=20, default='Pending')  # Add max_length
     expiration_date = models.DateField()
     expiration_time = models.TimeField()
+
 
 
 class Transaction(models.Model):
