@@ -733,3 +733,17 @@ def change_password_logged_in(request):
     update_last_login(None, user)
 
     return Response({"status": "success", "message": "Password changed successfully"}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def validate_username(request):
+    username = request.data.get('username')
+
+    if not username:
+        return Response({'status': 'error', 'message': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(username=username)
+        return Response({'status': 'success', 'message': 'User exists', 'user_id': user.user_id}, status=status.HTTP_200_OK)
+    except Users.DoesNotExist:
+        return Response({'status': 'error', 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)

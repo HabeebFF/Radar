@@ -57,7 +57,7 @@ class RadarTicket(models.Model):
     to_loc = models.CharField(max_length=15)
     transport_date = models.DateField()
     transport_time = models.TimeField()
-    num_of_buyers = models.IntegerField()
+    num_of_buyers = models.IntegerField(default=12)
 
 
 class Ticket(models.Model):
