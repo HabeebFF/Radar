@@ -751,12 +751,36 @@ def validate_username(request):
 
 @api_view(['POST'])
 def driver_signup(request):
-    serializer = DriverSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({'status': 'success', 'message': 'Driver signed up successfully'}, status=status.HTTP_201_CREATED)
-    else:
-        return Response({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        fullname = request.data.get('fullname')
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+        profile_picture = request.FILES.get('profile_picture')
+
+        if not all([fullname, username, email, password]):
+            return Response({'status': 'error', 'message': 'All fields except profile_picture are required.'}, status=400)
+
+        if Driver.objects.filter(username=username).exists():
+            return Response({'status': 'error', 'message': 'Username already taken.'}, status=400)
+
+        if Driver.objects.filter(email=email).exists():
+            return Response({'status': 'error', 'message': 'Email already registered.'}, status=400)
+
+        hashed_password = make_password(password)
+
+        driver = Driver(
+            fullname=fullname,
+            username=username,
+            email=email,
+            password=hashed_password,
+            profile_picture=profile_picture
+        )
+        driver.save()
+
+        return Response({'status': 'success', 'message': 'Driver signed up successfully'}, status=201)
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=400)
 
 
 @api_view(['POST'])
