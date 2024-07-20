@@ -40,7 +40,9 @@ urlpatterns = [
     path('get-first-three-transactions/', get_first_three_transactions, name='get_first_three_transactions'),
     path('get-all-transactions/', get_all_transactions, name="get_all_transactions"),
     path('send-money/', send_money, name='send_money'),
-    path('change-password-logged-in/', change_password_logged_in, name='change_password_logged_in')
+    path('change-password-logged-in/', change_password_logged_in, name='change_password_logged_in'),
+    path('driver-signup/', driver_signup, name='driver_signup'),
+    path('create-ticket/', create_ticket, name='create_ticket'),
 ]
 
 if settings.DEBUG:

@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken, Transaction
+from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken, Transaction, Driver, RadarTicket
 from .serializers import UserSerializer, DriverSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
@@ -747,3 +747,49 @@ def validate_username(request):
         return Response({'status': 'success', 'message': 'User exists', 'user_id': user.user_id}, status=status.HTTP_200_OK)
     except Users.DoesNotExist:
         return Response({'status': 'error', 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['POST'])
+def driver_signup(request):
+    serializer = DriverSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'status': 'success', 'message': 'Driver signed up successfully'}, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'status': 'error', 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def create_ticket(request):
+    try:
+        driver_id = request.data.get('driver_id')
+        from_loc = request.data.get('from_loc')
+        to_loc = request.data.get('to_loc')
+        transport_date = request.data.get('transport_date')
+        transport_time = request.data.get('transport_time')
+        num_of_buyers = request.data.get('num_of_buyers', 12)  # Default to 12 if not provided
+        ticket_status = request.data.get('status', 'upcoming')  # Default to 'upcoming' if not provided
+
+        if not all([driver_id, from_loc, to_loc, transport_date, transport_time]):
+            return Response({'status': 'error', 'message': 'All fields except num_of_buyers and status are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if driver exists
+        driver = Driver.objects.get(driver_id=driver_id)
+
+        # Create RadarTicket instance
+        radar_ticket = RadarTicket(
+            driver_id=driver,
+            from_loc=from_loc,
+            to_loc=to_loc,
+            transport_date=transport_date,
+            transport_time=transport_time,
+            num_of_buyers=num_of_buyers,
+            status=ticket_status
+        )
+        radar_ticket.save()
+
+        return Response({'status': 'success', 'message': 'Ticket created successfully'}, status=status.HTTP_201_CREATED)
+    except Driver.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Driver not found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)

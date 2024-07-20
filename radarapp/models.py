@@ -50,17 +50,34 @@ class VerificationToken(models.Model):
         now = datetime.datetime.now(datetime.timezone.utc)
         return now - self.created_at < datetime.timedelta(minutes=10)
 
+class Driver(models.Model):
+    driver_id = models.AutoField(primary_key=True)
+    fullname = models.CharField(max_length=124)
+    username = models.CharField(unique=True, max_length=124)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=124)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+
+    def __str__(self):
+        return self.fullname
+
+    def clean(self):
+        if self.profile_picture and self.profile_picture.size > 5 * 1024 * 1024:  # limit file size to 5MB
+            raise ValidationError("Profile picture file size should not exceed 5MB")
+
 
 class RadarTicket(models.Model):
     radar_ticket_id = models.AutoField(primary_key=True)
+    driver_id = models.ForeignKey(Driver, on_delete=models.CASCADE)
     from_loc = models.CharField(max_length=15)
     to_loc = models.CharField(max_length=15)
     transport_date = models.DateField()
     transport_time = models.TimeField()
     num_of_buyers = models.IntegerField(default=12)
+    status = models.CharField(max_length=20, default='upcoming')
 
 
-class Ticket(models.Model):
+class UserTicket(models.Model):
     ticket_id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='tickets')
     radar_ticket_id = models.ForeignKey(RadarTicket, on_delete=models.CASCADE)
@@ -86,3 +103,5 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} - {self.transaction_type}"
+    
+
