@@ -837,3 +837,38 @@ def get_user_profile_pic(request):
         return Response({'status': 'success', 'profile_picture_url': profile_picture_url}, status=200)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=400)
+    
+
+@api_view(['POST'])
+def user_get_three_recent_booked_ticket(request):
+    try:
+        user_id = request.data.get('user_id')
+
+        if not user_id:
+            return Response({'status': 'error', 'message': 'user_id is required.'}, status=400)
+
+        user = get_object_or_404(Users, pk=user_id)
+
+        # Fetch the three most recent booked tickets
+        recent_tickets = UserTicket.objects.filter(user_id=user).order_by('-date_booked', '-time_booked')[:3]
+
+        # Prepare the response data
+        tickets_data = []
+        for ticket in recent_tickets:
+            tickets_data.append({
+                'ticket_id': ticket.ticket_id,
+                'radar_ticket_id': ticket.radar_ticket_id_id,
+                'trip_type': ticket.trip_type,
+                'date_booked': ticket.date_booked,
+                'time_booked': ticket.time_booked,
+                'ticket_type': ticket.ticket_type,
+                'bought_by': ticket.bought_by_id if ticket.bought_by else None,
+                'num_of_tickets_bought': ticket.num_of_tickets_bought,
+                'status': ticket.status,
+                'expiration_date': ticket.expiration_date,
+                'expiration_time': ticket.expiration_time
+            })
+
+        return Response({'status': 'success', 'tickets': tickets_data}, status=200)
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=400)

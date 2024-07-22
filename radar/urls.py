@@ -44,6 +44,7 @@ urlpatterns = [
     path('driver-signup/', driver_signup, name='driver_signup'),
     path('create-ticket/', create_ticket, name='create_ticket'),
     path('get-user-profile-pic/', get_user_profile_pic, name='get_user_profile_pic'),
+    path('user-get-three-recent-booked-ticket', user_get_three_recent_booked_ticket, name='user_get_three_recent_booked_ticket'),
 ]
 
 if settings.DEBUG:
