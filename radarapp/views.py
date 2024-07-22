@@ -34,6 +34,7 @@ from decimal import Decimal
 import os
 from django.core.files import File
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
 
 
 logger = logging.getLogger(__name__)
@@ -902,3 +903,91 @@ def check_pin_availability(request):
             "status": "error",
             "message": "User wallet does not exist"
         }, status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['POST'])
+def create_wallet_pin(request):
+    user_id = request.data.get('user_id')
+    wallet_pin = request.data.get('wallet_pin')
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+        user_wallet, created = UserWallet.objects.get_or_create(user=user)
+
+        if user_wallet.wallet_pin:
+            return Response({
+                "status": "error",
+                "message": "Pin already exists"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user_wallet.wallet_pin = wallet_pin
+        user_wallet.full_clean()  # Validates the model instance
+        user_wallet.save()
+
+        return Response({
+            "status": "success",
+            "message": "Pin created successfully"
+        }, status=status.HTTP_201_CREATED)
+
+    except Users.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "User does not exist"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except ValidationError as e:
+        return Response({
+            "status": "error",
+            "message": "Invalid pin: " + ', '.join(e.messages)
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def change_wallet_pin(request):
+    user_id = request.data.get('user_id')
+    old_pin = request.data.get('old_pin')
+    new_pin = request.data.get('new_pin')
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+        user_wallet = UserWallet.objects.get(user=user)
+
+        if user_wallet.wallet_pin != old_pin:
+            return Response({
+                "status": "error",
+                "message": "Old pin is incorrect"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user_wallet.wallet_pin = new_pin
+        user_wallet.full_clean()  # Validates the model instance
+        user_wallet.save()
+
+        return Response({
+            "status": "success",
+            "message": "Pin changed successfully"
+        }, status=status.HTTP_200_OK)
+
+    except Users.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "User does not exist"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except UserWallet.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "Wallet does not exist for the user"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except ValidationError as e:
+        return Response({
+            "status": "error",
+            "message": "Invalid new pin: " + ', '.join(e.messages)
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

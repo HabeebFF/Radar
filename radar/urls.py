@@ -46,6 +46,8 @@ urlpatterns = [
     path('get-user-profile-pic/', get_user_profile_pic, name='get_user_profile_pic'),
     path('user-get-three-recent-booked-ticket/', user_get_three_recent_booked_ticket, name='user_get_three_recent_booked_ticket'),
     path('check-pin-availability/', check_pin_availability, name='check_pin_availability'),
+    path('create-wallet-pin/', create_wallet_pin, name='create_wallet_pin'),
+    path('change-wallet-pin/', change_wallet_pin, name='change_wallet_pin'),
 ]
 
 if settings.DEBUG:
