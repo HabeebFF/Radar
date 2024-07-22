@@ -52,7 +52,8 @@ urlpatterns = [
     path('driver-login-with-face-id/', driver_login_with_face_id, name='driver_login_with_face_id'),
     path('check-user-existence-with-username/', check_user_existence_with_username, name='check_user_existence_with_username'),
     path('get-all-booked-ticket-with-user-id/', get_all_booked_ticket_with_user_id, name='get_all_booked_ticket_with_user_id'),
-    path('get-all-created-tickets-with-driver-id/', get_all_created_tickets_with_driver_id, name='get_all_created_tickets_with_driver_id')
+    path('get-all-created-tickets-with-driver-id/', get_all_created_tickets_with_driver_id, name='get_all_created_tickets_with_driver_id'),
+    path('find-ride/', find_ride, name='find_ride'),
 
 ]
 

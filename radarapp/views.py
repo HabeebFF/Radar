@@ -1161,3 +1161,49 @@ def get_all_created_tickets_with_driver_id(request):
 
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def find_ride(request):
+    try:
+        # Retrieve data from the request
+        from_loc = request.data.get('from_loc')
+        to_loc = request.data.get('to_loc')
+        transport_date = request.data.get('transport_date')
+
+        # Validate required fields
+        if not all([from_loc, to_loc, transport_date]):
+            return Response({'status': 'error', 'message': 'All fields are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate date format
+        try:
+            transport_date = datetime.strptime(transport_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'status': 'error', 'message': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Query the RadarTicket model for matching rides
+        matching_rides = RadarTicket.objects.filter(
+            from_loc=from_loc,
+            to_loc=to_loc,
+            transport_date=transport_date
+        )
+
+        # If no rides found
+        if not matching_rides.exists():
+            return Response({'status': 'error', 'message': 'No rides found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the results
+        rides_data = [{
+            'driver_id': ride.driver_id.driver_id,
+            'from_loc': ride.from_loc,
+            'to_loc': ride.to_loc,
+            'transport_date': ride.transport_date,
+            'transport_time': ride.transport_time,
+            'num_of_buyers': ride.num_of_buyers,
+            'status': ride.status
+        } for ride in matching_rides]
+
+        return Response({'status': 'success', 'rides': rides_data}, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
