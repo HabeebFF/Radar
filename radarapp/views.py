@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Ticket, UserProfile, UserWallet, Users, VerificationToken, Transaction, Driver, RadarTicket
+from .models import UserTicket, UserProfile, UserWallet, Users, VerificationToken, Transaction, Driver, RadarTicket
 from .serializers import UserSerializer, DriverSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
@@ -474,7 +474,7 @@ def book_ticket(request):
         return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
     
     def create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
-        return Ticket.objects.create(
+        return UserTicket.objects.create(
             user_id=user_id,
             radar_ticket_id=radar_ticket_id,
             trip_type=trip_type,
