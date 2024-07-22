@@ -420,12 +420,7 @@ def convert_date_format(date_str):
         return "Invalid date format. Please use dd-mm-yyyy."
 
 
-@api_view(['POST'])
-def get_ticket_price(request):
-    from_loc = request.data.get('from_loc')
-    to_loc = request.data.get('to_loc')
-    trip_type = request.data.get('trip_type')
-
+def get_ticket_price(from_loc, to_loc, trip_type):
     prices = {
         ("mushin", "costain"): 100,
         ("mushin", "ilupeju"): 150,
@@ -451,17 +446,14 @@ def get_ticket_price(request):
 
     if (from_loc.lower(), to_loc.lower()) in prices:
         price = prices[(from_loc.lower(), to_loc.lower())]
-        # print(price)
         if trip_type == "one_way":
-            return Response({'status': 'success', 'price': price}, status=status.HTTP_200_OK)
+            return price
         elif trip_type == "round_trip":
             price = price * 2
-
             price = price - (price * 0.15)
-            return Response({'status': 'success', 'price': price}, status=status.HTTP_200_OK)
+            return price
     else:
-        return Response({'status': 'error', 'message': 'Invalid locations'})
-
+        raise ValueError("Invalid locations")
 
 
 @api_view(['POST'])
@@ -813,6 +805,12 @@ def create_ticket(request):
         # Check if driver exists
         driver = Driver.objects.get(driver_id=driver_id)
 
+        # Calculate the ticket price using the helper function
+        try:
+            price = get_ticket_price(from_loc, to_loc, request.data.get('trip_type'))
+        except ValueError as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         # Create RadarTicket instance
         radar_ticket = RadarTicket(
             driver_id=driver,
@@ -821,16 +819,17 @@ def create_ticket(request):
             transport_date=transport_date,
             transport_time=transport_time,
             num_of_buyers=num_of_buyers,
-            status=ticket_status
+            status=ticket_status,
+            price=price  # Save the calculated price in the radar ticket
         )
         radar_ticket.save()
 
-        return Response({'status': 'success', 'message': 'Ticket created successfully'}, status=status.HTTP_201_CREATED)
+        return Response({'status': 'success', 'message': 'Ticket created successfully', 'price': price}, status=status.HTTP_201_CREATED)
     except Driver.DoesNotExist:
         return Response({'status': 'error', 'message': 'Driver not found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 @api_view(['POST'])
 def get_user_profile_pic(request):
@@ -1050,7 +1049,6 @@ def get_known_face_encodings_and_names():
     
     return known_face_encodings, known_face_names
 
-
 @api_view(['POST'])
 def driver_login_with_face_id(request):
     try:
@@ -1081,5 +1079,85 @@ def driver_login_with_face_id(request):
         
         return Response({'status': 'error', 'message': 'No match found'}, status=status.HTTP_404_NOT_FOUND)
     
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def check_user_existence_with_username(request):
+    username = request.data.get('username')
+
+    if not username:
+        return Response({'status': 'error', 'message': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user_exists = Users.objects.filter(username=username).exists()
+
+    if user_exists:
+        return Response({'status': 'success', 'message': 'User exists'}, status=status.HTTP_200_OK)
+    else:
+        return Response({'status': 'error', 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['POST'])
+def get_all_booked_ticket_with_user_id(request):
+    user_id = request.data.get('user_id')
+
+    if not user_id:
+        return Response({'status': 'error', 'message': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Fetch all tickets associated with the provided user_id
+        tickets = UserTicket.objects.filter(user_id=user_id)
+
+        if not tickets.exists():
+            return Response({'status': 'error', 'message': 'No tickets found for the given user_id.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the ticket data
+        ticket_data = [{
+            'ticket_id': ticket.id,
+            'radar_ticket_id': ticket.radar_ticket_id,
+            'trip_type': ticket.trip_type,
+            'date_booked': ticket.date_booked,
+            'time_booked': ticket.time_booked,
+            'ticket_type': ticket.ticket_type,
+            'num_of_tickets_bought': ticket.num_of_tickets_bought,
+            'bought_by': ticket.bought_by,
+        } for ticket in tickets]
+
+        return Response({'status': 'success', 'tickets': ticket_data}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+@api_view(['POST'])
+def get_all_created_tickets_with_driver_id(request):
+    driver_id = request.data.get('driver_id')
+
+    if not driver_id:
+        return Response({'status': 'error', 'message': 'driver_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Fetch all tickets associated with the provided driver_id
+        tickets = RadarTicket.objects.filter(driver_id=driver_id)
+
+        if not tickets.exists():
+            return Response({'status': 'error', 'message': 'No tickets found for the given driver_id.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the ticket data
+        ticket_data = [{
+            'radar_ticket_id': ticket.radar_ticket_id,
+            'from_loc': ticket.from_loc,
+            'to_loc': ticket.to_loc,
+            'price': ticket.price,
+            'transport_date': ticket.transport_date,
+            'transport_time': ticket.transport_time,
+            'num_of_buyers': ticket.num_of_buyers,
+            'status': ticket.status,
+        } for ticket in tickets]
+
+        return Response({'status': 'success', 'tickets': ticket_data}, status=status.HTTP_200_OK)
+
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
