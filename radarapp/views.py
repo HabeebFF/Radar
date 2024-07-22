@@ -872,3 +872,33 @@ def user_get_three_recent_booked_ticket(request):
         return Response({'status': 'success', 'tickets': tickets_data}, status=200)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=400)
+    
+
+@api_view(['POST'])
+def check_pin_availability(request):
+    user_id = request.data.get('user_id')
+    
+    try:
+        user = Users.objects.get(user_id=user_id)
+        user_wallet = UserWallet.objects.get(user=user)
+        
+        if user_wallet.wallet_pin:
+            return Response({
+                "status": "success",
+                "message": "Pin is available"
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "status": "success",
+                "message": "Pin not set"
+            }, status=status.HTTP_200_OK)
+    except Users.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "User does not exist"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except UserWallet.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "User wallet does not exist"
+        }, status=status.HTTP_404_NOT_FOUND)
