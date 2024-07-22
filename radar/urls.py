@@ -48,6 +48,8 @@ urlpatterns = [
     path('check-pin-availability/', check_pin_availability, name='check_pin_availability'),
     path('create-wallet-pin/', create_wallet_pin, name='create_wallet_pin'),
     path('change-wallet-pin/', change_wallet_pin, name='change_wallet_pin'),
+    path('driver-login-with-password/', driver_login_with_password, name='driver_login_with_password'),
+    path('driver-login-with-face-id/', driver_login_with_face_id, name='driver_login_with_face_id'),
 ]
 
 if settings.DEBUG:

@@ -35,6 +35,10 @@ import os
 from django.core.files import File
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
+import face_recognition
+import numpy as np
+from PIL import Image
+import io
 
 
 logger = logging.getLogger(__name__)
@@ -755,23 +759,28 @@ def validate_username(request):
 @api_view(['POST'])
 def driver_signup(request):
     try:
+        # Retrieve data from the request
         fullname = request.data.get('fullname')
         username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
         profile_picture = request.FILES.get('profile_picture')
 
+        # Check if all required fields are provided
         if not all([fullname, username, email, password]):
-            return Response({'status': 'error', 'message': 'All fields except profile_picture are required.'}, status=400)
+            return Response({'status': 'error', 'message': 'All fields except profile_picture are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check for existing username or email
         if Driver.objects.filter(username=username).exists():
-            return Response({'status': 'error', 'message': 'Username already taken.'}, status=400)
+            return Response({'status': 'error', 'message': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if Driver.objects.filter(email=email).exists():
-            return Response({'status': 'error', 'message': 'Email already registered.'}, status=400)
+            return Response({'status': 'error', 'message': 'Email already registered.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Hash the password
         hashed_password = make_password(password)
 
+        # Create and save the new driver
         driver = Driver(
             fullname=fullname,
             username=username,
@@ -781,10 +790,11 @@ def driver_signup(request):
         )
         driver.save()
 
-        return Response({'status': 'success', 'message': 'Driver signed up successfully'}, status=201)
+        return Response({'status': 'success', 'message': 'Driver signed up successfully'}, status=status.HTTP_201_CREATED)
+    
     except Exception as e:
-        return Response({'status': 'error', 'message': str(e)}, status=400)
-
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 
 @api_view(['POST'])
 def create_ticket(request):
@@ -991,3 +1001,85 @@ def change_wallet_pin(request):
             "status": "error",
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def driver_login_with_password(request):
+    driver_username = request.data.get('driver_username')
+    driver_password = request.data.get('driver_password')
+
+    try:
+        driver = Driver.objects.get(username=driver_username)
+
+        if check_password(driver_password, driver.password):
+            return Response({
+                "status": "success",
+                "message": "Login successful"
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "status": "error",
+                "message": "Incorrect password"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Driver.DoesNotExist:
+        return Response({
+            "status": "error",
+            "message": "Driver not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+def get_known_face_encodings_and_names():
+    # Retrieve face encodings and names from the database
+    known_face_encodings = []
+    known_face_names = []
+    drivers = Driver.objects.all()
+    
+    for driver in drivers:
+        if driver.profile_picture:
+            image = face_recognition.load_image_file(driver.profile_picture.path)
+            encoding = face_recognition.face_encodings(image)
+            if encoding:
+                known_face_encodings.append(encoding[0])
+                known_face_names.append(driver.username)
+    
+    return known_face_encodings, known_face_names
+
+
+@api_view(['POST'])
+def driver_login_with_face_id(request):
+    try:
+        uploaded_file = request.FILES.get('image')
+        
+        if not uploaded_file:
+            return Response({'status': 'error', 'message': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        image = Image.open(uploaded_file)
+        image = np.array(image)
+        
+        known_face_encodings, known_face_names = get_known_face_encodings_and_names()
+        
+        uploaded_face_encodings = face_recognition.face_encodings(image)
+        
+        if not uploaded_face_encodings:
+            return Response({'status': 'error', 'message': 'No faces found in the image'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        for uploaded_face_encoding in uploaded_face_encodings:
+            matches = face_recognition.compare_faces(known_face_encodings, uploaded_face_encoding)
+            if True in matches:
+                matched_index = matches.index(True)
+                matched_name = known_face_names[matched_index]
+                
+                driver = Driver.objects.filter(username=matched_name).first()
+                if driver:
+                    return Response({'status': 'success', 'message': 'Login successful', 'driver': {'username': driver.username}}, status=status.HTTP_200_OK)
+        
+        return Response({'status': 'error', 'message': 'No match found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
