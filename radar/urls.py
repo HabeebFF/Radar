@@ -43,6 +43,7 @@ urlpatterns = [
     path('change-password-logged-in/', change_password_logged_in, name='change_password_logged_in'),
     path('driver-signup/', driver_signup, name='driver_signup'),
     path('create-ticket/', create_ticket, name='create_ticket'),
+    path('get-user-profile-pic/', get_user_profile_pic, name='get_user_profile_pic'),
 ]
 
 if settings.DEBUG:
