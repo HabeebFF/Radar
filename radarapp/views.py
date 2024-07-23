@@ -1321,3 +1321,29 @@ def get_all_user_notifications(request):
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def get_username_and_prof_pic_of_users_i_sent_money_to(request):
+    try:
+        user_id = request.data.get('user_id')
+        
+        if not user_id:
+            return Response({'status': 'error', 'message': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = get_object_or_404(Users, pk=user_id)
+
+        sent_transfers = Transaction.objects.filter(sender=user).select_related('receiver', 'receiver__userprofile').distinct('receiver')
+
+        users_info = []
+        for transfer in sent_transfers:
+            receiver = transfer.receiver
+            profile_picture_url = request.build_absolute_uri(receiver.userprofile.profile_picture.url) if receiver.userprofile.profile_picture else None
+            users_info.append({
+                'username': receiver.username,
+                'profile_picture_url': profile_picture_url
+            })
+
+        return Response({'status': 'success', 'users_info': users_info}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -56,6 +56,7 @@ urlpatterns = [
     path('find-ride/', find_ride, name='find_ride'),
     path('confirm-ticket-code/', confirm_ticket_code, name='confirm_ticket_code'),
     path('get-all-user-notifications/', get_all_user_notifications, name='get_all_user_notifications'),
+    path('get-username-and-prof-pic/', get_username_and_prof_pic_of_users_i_sent_money_to, name='get_username_and_prof_pic_of_users_i_sent_money_to')
 
 ]
 
