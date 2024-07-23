@@ -459,7 +459,7 @@ def get_ticket_price(from_loc, to_loc, trip_type):
 def validate_wallet_pin(user, pin):
     try:
         wallet = UserWallet.objects.get(user=user)
-        return wallet.pin == pin
+        return wallet.wallet_pin == pin
     except UserWallet.DoesNotExist:
         return False
 
