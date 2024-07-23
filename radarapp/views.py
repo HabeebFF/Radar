@@ -1577,7 +1577,7 @@ def verify_payment(request):
     
 
 @api_view(['POST'])
-def get_username_and_email(request):
+def get_username_email_fullname(request):
     user_id = request.data.get('user_id')
     
     if not user_id:
@@ -1588,7 +1588,8 @@ def get_username_and_email(request):
         return Response({
             "status": "success",
             "username": user.username,
-            "email": user.email
+            "email": user.email,
+            "fullname": user.fullname
         }, status=status.HTTP_200_OK)
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
