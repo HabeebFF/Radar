@@ -1528,7 +1528,7 @@ def topup_wallet(request):
         return Response({"status": "error", "message": response_data.get('message', 'Error initializing transaction')}, status=response.status_code)
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 def verify_payment(request):
     reference = request.data.get('reference')
     amount = request.data.get('amount')
