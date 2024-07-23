@@ -889,17 +889,20 @@ def get_user_profile_pic(request):
         user_id = request.data.get('user_id')
         
         if not user_id:
-            return Response({'status': 'error', 'message': 'user_id is required.'}, status=400)
+            return Response({'status': 'error', 'message': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = get_object_or_404(Users, pk=user_id)
         user_profile = get_object_or_404(UserProfile, user=user)
 
-        profile_picture_url = user_profile.profile_picture.url if user_profile.profile_picture else None
+        if user_profile.profile_picture:
+            profile_picture_url = request.build_absolute_uri(user_profile.profile_picture.url)
+        else:
+            profile_picture_url = None
         
-        return Response({'status': 'success', 'profile_picture_url': profile_picture_url}, status=200)
+        return Response({'status': 'success', 'profile_picture_url': profile_picture_url}, status=status.HTTP_200_OK)
     except Exception as e:
-        return Response({'status': 'error', 'message': str(e)}, status=400)
-    
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 def user_get_three_recent_booked_ticket(request):
