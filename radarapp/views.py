@@ -1481,12 +1481,11 @@ def driver_confirm_user_ticket_code(request):
 @api_view(['POST'])
 def topup_wallet(request):
     amount = request.data.get("amount")
-    user_id = request.data.get("user_id")  # Assuming user_id is passed from the frontend
+    user_id = request.data.get("user_id")
 
     if not amount or not user_id:
         return Response({"error": "Amount and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Convert amount to kobo (smallest currency unit)
     amount_in_kobo = int(float(amount) * 100)
 
     try:
@@ -1495,7 +1494,6 @@ def topup_wallet(request):
     except Users.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Initialize transaction with Paystack
     url = "https://api.paystack.co/transaction/initialize"
     payload = json.dumps({
         "email": email,
@@ -1503,8 +1501,7 @@ def topup_wallet(request):
     })
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk_test_c70a285be29337a0697e19864e3665adb79cfc37',
-        'Cookie': '__cf_bm=gbrsDV91pqifBrsEGL.qw9zKSpF3Ko5OYkaIAMtnXBw-1715894815-1.0.1.1-51YT3WXxG0FaQG3S6qv0vW_QHwiTVy9eGZzAACSOH7Dfn_tVOdWK48v9XWJ2VuuFjm9KoVytG1LW8CqjGtFYPA; sails.sid=s%3AmcZ3e8mg-Bj4sBRAYJT7ECXiVOvSVAtE.SPmkE9pi9JG%2FUR%2FXTqmgD8QqaquBN9h32g7MNGIJTqA'
+        'Authorization': 'Bearer sk_test_c70a285be29337a0697e19864e3665adb79cfc37'
     }
 
     response = requests.post(url, headers=headers, data=payload)
@@ -1516,23 +1513,22 @@ def topup_wallet(request):
         access_code = data['access_code']
         authorization_url = data['authorization_url']
 
-        # Log transaction details
         Transaction.objects.create(
             user=user,
             reference=reference,
             transaction_type='deposit',
-            status='Pending',
+            status='pending',
             access_code=access_code,
             email=email,
             amount=Decimal(amount),
         )
 
-        return Response({"status":"success", "authorization_url": authorization_url, "access_code": access_code, "reference": reference, "amount": amount}, status=status.HTTP_200_OK)
+        return Response({"status": "success", "authorization_url": authorization_url, "access_code": access_code, "reference": reference, "amount": amount}, status=status.HTTP_200_OK)
     else:
         return Response({"status": "error", "message": response_data.get('message', 'Error initializing transaction')}, status=response.status_code)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def verify_payment(request):
     reference = request.data.get('reference')
     amount = request.data.get('amount')
@@ -1541,38 +1537,38 @@ def verify_payment(request):
         return Response({'error': 'Reference and amount are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     url = f"https://api.paystack.co/transaction/verify/{reference}"
-
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer sk_test_c70a285be29337a0697e19864e3665adb79cfc37'
     }
 
     response = requests.get(url, headers=headers)
+    response_data = response.json()
 
     if response.status_code == 200:
-        response_data = response.json()
         if response_data['status'] and response_data['data']['amount'] == int(amount) * 100:
             try:
-                # Retrieve the transaction record
-                transaction = Transaction.objects.get(reference=reference)
+                with transaction.atomic():
+                    transaction = Transaction.objects.select_for_update().get(reference=reference)
 
-                # Update the transaction status to successful
-                transaction.status = 'success'
-                transaction.save()
+                    if transaction.status == 'success':
+                        return Response({'message': 'Payment already verified.'}, status=status.HTTP_200_OK)
 
-                # Update the user's wallet balance
-                user = transaction.user
-                wallet = UserWallet.objects.select_for_update().get(user=user)
-                wallet.wallet_balance += Decimal(amount)
-                wallet.save()
+                    transaction.status = 'success'
+                    transaction.save()
+
+                    user = transaction.user
+                    wallet = UserWallet.objects.select_for_update().get(user=user)
+                    wallet.wallet_balance += Decimal(amount)
+                    wallet.save()
+
+                return Response({'message': 'Payment verified successfully.'}, status=status.HTTP_200_OK)
             except Transaction.DoesNotExist:
                 return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
             except UserWallet.DoesNotExist:
                 return Response({'error': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            return Response({'message': 'Payment verified successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Payment verification failed.'}, status=status.HTTP_400_BAD_REQUEST)
     else:
