@@ -1563,9 +1563,9 @@ def verify_payment(request):
                     wallet.wallet_balance += Decimal(amount)
                     wallet.save()
 
-                return Response({'message': 'Payment verified successfully.', 'some': response_data}, status=status.HTTP_200_OK)
+                return Response({'message': 'Payment verified successfully.'}, status=status.HTTP_200_OK)
             except Transaction.DoesNotExist:
-                return Response({'error': 'Transaction not found', 'some': response_data}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
             except UserWallet.DoesNotExist:
                 return Response({'error': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
