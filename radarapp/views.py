@@ -1531,9 +1531,9 @@ def topup_wallet(request):
 @api_view(['GET'])
 def verify_payment(request):
     reference = request.query_params.get('reference')
-    amount = request.query_params.get('amount')
 
-    if not reference or not amount:
+
+    if not reference:
         return Response({'error': 'Reference and amount are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     url = f"https://api.paystack.co/transaction/verify/{reference}"
@@ -1546,7 +1546,7 @@ def verify_payment(request):
     response_data = response.json()
 
     if response.status_code == 200:
-        if response_data['status'] and response_data['data']['amount'] == int(amount) * 100:
+        if response_data['status'] and response_data['data']['amount'] == int(response_data['amount']) * 100:
             try:
                 with db_transaction.atomic():
                     transaction = Transaction.objects.select_for_update().get(reference=reference)
@@ -1559,12 +1559,12 @@ def verify_payment(request):
 
                     user = transaction.user
                     wallet = UserWallet.objects.select_for_update().get(user=user)
-                    wallet.wallet_balance += Decimal(amount)
+                    wallet.wallet_balance += Decimal(response_data['amount'])
                     wallet.save()
 
-                return Response({'message': 'Payment verified successfully.'}, status=status.HTTP_200_OK)
+                return Response({'message': 'Payment verified successfully.', 'some': response_data}, status=status.HTTP_200_OK)
             except Transaction.DoesNotExist:
-                return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Transaction not found', 'some': response_data}, status=status.HTTP_404_NOT_FOUND)
             except UserWallet.DoesNotExist:
                 return Response({'error': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
