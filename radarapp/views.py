@@ -1426,12 +1426,15 @@ def get_username_and_prof_pic_of_users_i_sent_money_to(request):
 
         user = get_object_or_404(Users, pk=user_id)
 
-        sent_transfers = Transaction.objects.filter(sender=user).distinct('receiver')
+        sent_transfers = Transaction.objects.filter(sender=user).select_related('receiver')
 
         users_info = []
+        unique_receivers = set()
+
         for transfer in sent_transfers:
             receiver = transfer.receiver
-            if receiver:
+            if receiver and receiver.username not in unique_receivers:
+                unique_receivers.add(receiver.username)
                 user_profile = UserProfile.objects.filter(user=receiver).first()
                 profile_picture_url = request.build_absolute_uri(user_profile.profile_picture.url) if user_profile and user_profile.profile_picture else None
                 users_info.append({
