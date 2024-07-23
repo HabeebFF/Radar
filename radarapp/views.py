@@ -1530,8 +1530,8 @@ def topup_wallet(request):
 
 @api_view(['GET'])
 def verify_payment(request):
-    reference = request.data.get('reference')
-    amount = request.data.get('amount')
+    reference = request.query_params.get('reference')
+    amount = request.query_params.get('amount')
 
     if not reference or not amount:
         return Response({'error': 'Reference and amount are required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1573,3 +1573,7 @@ def verify_payment(request):
             return Response({'error': 'Payment verification failed.'}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response({'error': 'Failed to verify payment.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def
