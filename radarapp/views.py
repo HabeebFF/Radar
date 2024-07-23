@@ -1518,9 +1518,9 @@ def topup_wallet(request):
             amount=amount,
         )
 
-        return Response({"authorization_url": authorization_url, "access_code": access_code, "reference": reference, "amount": amount}, status=status.HTTP_200_OK)
+        return Response({"status":"success", "authorization_url": authorization_url, "access_code": access_code, "reference": reference, "amount": amount}, status=status.HTTP_200_OK)
     else:
-        return Response(response_data, status=response.status_code)
+        return Response({"status": "error"}, response_data, status=response.status_code)
 
 
 @api_view(['GET'])
