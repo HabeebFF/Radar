@@ -1245,22 +1245,28 @@ def get_all_booked_ticket_with_user_id(request):
             return Response({'status': 'error', 'message': 'No tickets found for the given user_id.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Serialize the ticket data
-        ticket_data = [{
-            'ticket_id': ticket.id,
-            'radar_ticket_id': ticket.radar_ticket_id,
-            'trip_type': ticket.trip_type,
-            'date_booked': ticket.date_booked,
-            'time_booked': ticket.time_booked,
-            'ticket_type': ticket.ticket_type,
-            'num_of_tickets_bought': ticket.num_of_tickets_bought,
-            'bought_by': ticket.bought_by,
-        } for ticket in tickets]
+        ticket_data = []
+        for ticket in tickets:
+            radar_ticket = RadarTicket.objects.get(radar_ticket_id=ticket.radar_ticket_id)
+            ticket_data.append({
+                'ticket_id': ticket.id,
+                'radar_ticket_id': ticket.radar_ticket_id,
+                'trip_type': ticket.trip_type,
+                'date_booked': ticket.date_booked,
+                'time_booked': ticket.time_booked,
+                'ticket_type': ticket.ticket_type,
+                'num_of_tickets_bought': ticket.num_of_tickets_bought,
+                'bought_by': ticket.bought_by,
+                'ticket_code': ticket.ticket_code,
+                'radar_ticket_price': radar_ticket.price
+            })
 
         return Response({'status': 'success', 'tickets': ticket_data}, status=status.HTTP_200_OK)
 
+    except RadarTicket.DoesNotExist:
+        return Response({'status': 'error', 'message': 'RadarTicket not found for one or more tickets.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
 
 
 @api_view(['POST'])
