@@ -130,7 +130,7 @@ class Transaction(models.Model):
     status = models.CharField(max_length=10, default='Pending')
     sender = models.ForeignKey(Users, related_name='sent_transfers', on_delete=models.CASCADE, null=True)
     receiver = models.ForeignKey(Users, related_name='received_transfers', on_delete=models.CASCADE, null=True)
-    reference_number = models.CharField(max_length=20)
+    reference = models.CharField(max_length=128)
     payment_method = models.CharField(max_length=14, default="Wallet Balance", null=True)
     credited_to = models.CharField(max_length=14, default="Wallet Balance", null=True)
     created_at = models.DateTimeField(auto_now_add=True)

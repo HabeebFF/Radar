@@ -539,7 +539,7 @@ def book_ticket(request):
                     transaction_type=transaction_type,
                     sender=sender,
                     receiver=receiver,
-                    reference_number=generate_unique_reference_number()
+                    reference=generate_unique_reference_number()
                 )
 
             if trip_type == "one_way":
@@ -710,7 +710,7 @@ def get_all_transactions(request):
             'transaction_date': str(transaction.transaction_date),
             'transaction_type': transaction.transaction_type,
             'status': transaction.status,
-            'reference_number': transaction.reference_number
+            'reference': transaction.reference
         }
 
         if transaction.transaction_type == 'transfer':
@@ -788,7 +788,7 @@ def send_money(request):
         receiver_wallet.save()
 
         # Generate a reference number
-        reference_number = f'TXN-{sender.user_id}-{receiver.user_id}-{int(amount*100)}-{datetime.now().timestamp()}'
+        reference = f'TXN-{sender.user_id}-{receiver.user_id}-{int(amount*100)}-{datetime.now().timestamp()}'
 
         # Record the transaction for sender
         sender_transaction = Transaction.objects.create(
@@ -798,7 +798,7 @@ def send_money(request):
             status='completed',
             sender=sender,
             receiver=receiver,
-            reference_number=reference_number,
+            reference=reference,
             payment_method='Wallet Balance',
             credited_to='Wallet Balance'
         )
@@ -811,7 +811,7 @@ def send_money(request):
             status='completed',
             sender=sender,
             receiver=receiver,
-            reference_number=reference_number,
+            reference=reference,
             payment_method='Wallet Balance',
             credited_to='Wallet Balance'
         )
@@ -825,7 +825,7 @@ def send_money(request):
         #         "transaction_date": str(sender_transaction.transaction_date),
         #         "transaction_type": sender_transaction.transaction_type,
         #         "status": sender_transaction.status,
-        #         "reference_number": sender_transaction.reference_number,
+        #         "reference": sender_transaction.reference,
         #         "receiver_name": receiver.username,
         #         "payment_method": sender_transaction.payment_method
         #     },
@@ -834,7 +834,7 @@ def send_money(request):
         #         "transaction_date": str(receiver_transaction.transaction_date),
         #         "transaction_type": receiver_transaction.transaction_type,
         #         "status": receiver_transaction.status,
-        #         "reference_number": receiver_transaction.reference_number,
+        #         "reference": receiver_transaction.reference,
         #         "sender_name": sender.username,
         #         "credited_to": receiver_transaction.credited_to
         #     }
@@ -1520,7 +1520,7 @@ def topup_wallet(request):
         # Log transaction details
         Transaction.objects.create(
             user=user,
-            reference_number=reference,
+            reference=reference,
             transaction_type='deposit',
             status='pending',
             access_code=access_code,
@@ -1559,7 +1559,7 @@ def verify_payment(request):
             print('good')
             try:
                 # Retrieve the transaction record
-                transaction = Transaction.objects.get(reference_number=reference)
+                transaction = Transaction.objects.get(reference=reference)
 
                 # Update the transaction status to successful
                 transaction.transaction_status = 'success'
