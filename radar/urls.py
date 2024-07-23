@@ -37,7 +37,6 @@ urlpatterns = [
     path('get-username/', get_username, name='get_username'),
     path('get-wallet-balance/', get_wallet_balance, name='get_wallet_balance'),
     path('get-locations/', get_locations, name='get_locations'),
-    path('get-first-three-transactions/', get_first_three_transactions, name='get_first_three_transactions'),
     path('get-all-transactions/', get_all_transactions, name="get_all_transactions"),
     path('send-money/', send_money, name='send_money'),
     path('change-password-logged-in/', change_password_logged_in, name='change_password_logged_in'),
