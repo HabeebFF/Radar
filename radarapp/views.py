@@ -1591,7 +1591,7 @@ def get_username_email_fullname(request):
             "status": "success",
             "username": user.username,
             "email": user.email,
-            "fullname": user.fullname
+            "fullname": user.full_name
         }, status=status.HTTP_200_OK)
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1617,7 +1617,7 @@ def change_username_email_fullname(request):
         if email:
             user.email = email
         if fullname:
-            user.fullname = fullname
+            user.full_name = fullname
         
         user.save()
         
