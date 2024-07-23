@@ -1548,7 +1548,7 @@ def verify_payment(request):
     if response.status_code == 200:
         if response_data['status'] and response_data['data']['amount'] == int(amount) * 100:
             try:
-                with transaction.atomic():
+                with db_transaction.atomic():
                     transaction = Transaction.objects.select_for_update().get(reference=reference)
 
                     if transaction.status == 'success':
