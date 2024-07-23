@@ -58,6 +58,7 @@ urlpatterns = [
     path('get-username-and-prof-pic/', get_username_and_prof_pic_of_users_i_sent_money_to, name='get_username_and_prof_pic_of_users_i_sent_money_to'),
     path('topup-wallet/', topup_wallet, name='topup_wallet'),
     path('verify-payment/', verify_payment, name='verify_payment'),
+    path('get-username-and-email/', get_username_and_email, name='get_username_and_email'),
 ]
 
 if settings.DEBUG:

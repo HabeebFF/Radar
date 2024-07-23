@@ -1576,3 +1576,21 @@ def verify_payment(request):
         return Response({'error': 'Failed to verify payment.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
+@api_view(['POST'])
+def get_username_and_email(request):
+    user_id = request.data.get('user_id')
+    
+    if not user_id:
+        return Response({"status": "error", "message": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = get_object_or_404(Users, pk=user_id)
+        return Response({
+            "status": "success",
+            "username": user.username,
+            "email": user.email
+        }, status=status.HTTP_200_OK)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
