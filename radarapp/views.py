@@ -1207,3 +1207,39 @@ def find_ride(request):
     
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def confirm_ticket_code(request):
+    try:
+        # Retrieve data from the request
+        driver_id = request.data.get('driver_id')
+        radar_ticket_id = request.data.get('radar_ticket_id')
+        ticket_code = request.data.get('ticket_code')
+
+        # Validate required fields
+        if not all([driver_id, radar_ticket_id, ticket_code]):
+            return Response({'status': 'error', 'message': 'All fields are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify that the ticket exists and matches the provided details
+        try:
+            ticket = UserTicket.objects.get(
+                ticket_code=ticket_code,
+                radar_ticket_id=radar_ticket_id,
+                radar_ticket_id__driver_id=driver_id  # Ensure the ticket is for the given driver
+            )
+        except UserTicket.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Invalid ticket code or mismatch with radar ticket or driver.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the ticket is already confirmed
+        if ticket.status == 'Confirmed':
+            return Response({'status': 'error', 'message': 'Ticket is already confirmed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update ticket status to 'Confirmed'
+        ticket.status = 'Confirmed'
+        ticket.save()
+
+        return Response({'status': 'success', 'message': 'Ticket confirmed successfully'}, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

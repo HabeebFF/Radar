@@ -54,6 +54,7 @@ urlpatterns = [
     path('get-all-booked-ticket-with-user-id/', get_all_booked_ticket_with_user_id, name='get_all_booked_ticket_with_user_id'),
     path('get-all-created-tickets-with-driver-id/', get_all_created_tickets_with_driver_id, name='get_all_created_tickets_with_driver_id'),
     path('find-ride/', find_ride, name='find_ride'),
+    path('confirm-ticket-code/', confirm_ticket_code, name='confirm_ticket_code'),
 
 ]
 
