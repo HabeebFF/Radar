@@ -1544,9 +1544,10 @@ def verify_payment(request):
 
     response = requests.get(url, headers=headers)
     response_data = response.json()
+    amount = (response_data['data']['amount']) / 100
 
     if response.status_code == 200:
-        if response_data['status'] and response_data['data']['amount'] == int(response_data['amount']) * 100:
+        if response_data['status']:
             try:
                 with db_transaction.atomic():
                     transaction = Transaction.objects.select_for_update().get(reference=reference)
@@ -1559,7 +1560,7 @@ def verify_payment(request):
 
                     user = transaction.user
                     wallet = UserWallet.objects.select_for_update().get(user=user)
-                    wallet.wallet_balance += Decimal(response_data['amount'])
+                    wallet.wallet_balance += Decimal(amount)
                     wallet.save()
 
                 return Response({'message': 'Payment verified successfully.', 'some': response_data}, status=status.HTTP_200_OK)
