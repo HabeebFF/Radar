@@ -1595,3 +1595,32 @@ def get_username_email_fullname(request):
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@api_view(['POST'])
+def change_username_email_fullname(request):
+    user_id = request.data.get('user_id')
+    username = request.data.get('username')
+    email = request.data.get('email')
+    fullname = request.data.get('fullname')
+    
+    if not user_id:
+        return Response({"status": "error", "message": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = get_object_or_404(Users, pk=user_id)
+        
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+        if fullname:
+            user.fullname = fullname
+        
+        user.save()
+        
+        return Response({"status": "success", "message": "User information updated successfully"}, status=status.HTTP_200_OK)
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

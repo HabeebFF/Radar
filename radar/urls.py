@@ -59,6 +59,7 @@ urlpatterns = [
     path('topup-wallet/', topup_wallet, name='topup_wallet'),
     path('verify-payment/', verify_payment, name='verify_payment'),
     path('get-username-email-fullname/', get_username_email_fullname, name='get_username_email_fullname'),
+    path('change-username-email-fullname/', change_username_email_fullname, name='change_username_email_fullname'),
 ]
 
 if settings.DEBUG:
