@@ -1479,6 +1479,8 @@ def topup_wallet(request):
 
     # Convert amount to kobo (smallest currency unit)
     amount_in_kobo = int(float(amount) * 100)
+    user = Users.objects.get(user_id=user_id)
+    email = user.email
 
     try:
         user = Users.objects.get(user_id=user_id)
@@ -1488,7 +1490,7 @@ def topup_wallet(request):
     # Initialize transaction with Paystack
     url = "https://api.paystack.co/transaction/initialize"
     payload = json.dumps({
-        # "email": email,
+        "email": email,
         "amount": amount_in_kobo,
     })
     headers = {
@@ -1513,7 +1515,7 @@ def topup_wallet(request):
             transaction_type='deposit',
             status='pending',
             access_code=access_code,
-            email="email",
+            email=email,
             amount=amount,
         )
 
