@@ -40,7 +40,7 @@ import numpy as np
 from PIL import Image
 import io
 from django.db import transaction as db_transaction
-
+import uuid
 
 logger = logging.getLogger(__name__)
 # Create your views here.
@@ -59,6 +59,15 @@ def get_random_avatar(avatars_dir):
         selected_avatar = random.choice(avatars)
         return os.path.join(avatars_dir, selected_avatar)
     return None
+
+
+def generate_unique_reference_number():
+    # Generate a unique reference number using UUID and take a substring
+    reference_number = str(uuid.uuid4().hex[:20].upper())  # 20 characters from UUID
+    # Ensure the reference number is unique in the Transaction model
+    while Transaction.objects.filter(reference_number=reference_number).exists():
+        reference_number = str(uuid.uuid4().hex[:20].upper())
+    return reference_number
 
 
 def create_user(data):
@@ -463,6 +472,23 @@ def validate_wallet_pin(user, pin):
         return wallet.wallet_pin == pin
     except UserWallet.DoesNotExist:
         return False
+    
+
+def deduct_from_wallet(user, amount):
+    if user.userwallet.balance >= amount:
+        user.userwallet.balance -= amount
+        user.userwallet.save()
+        return True
+    return False
+
+
+def generate_unique_ticket_code():
+    # Generate a unique ticket code using UUID and take a substring
+    ticket_code = str(uuid.uuid4().hex[:8].upper())  # 8 characters from UUID
+    # Ensure the ticket code is unique in the UserTicket model
+    while UserTicket.objects.filter(ticket_code=ticket_code).exists():
+        ticket_code = str(uuid.uuid4().hex[:8].upper())
+    return ticket_code
 
 
 @api_view(['POST'])
@@ -477,23 +503,17 @@ def book_ticket(request):
     mp_ticket_list = request.data.get('mp_ticket_list', [])
     wallet_pin = request.data.get('wallet_pin')
 
+    if not all([trip_type, ticket_type, user_id, radar_ticket_id, date_booked, time_booked, wallet_pin]):
+        return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
         user = Users.objects.get(user_id=user_id)
 
-        if not all([trip_type, ticket_type, user_id, radar_ticket_id, date_booked, time_booked, wallet_pin]):
-            return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if trip_type == 'round_trip':
-            radar_ticket1_id = request.data.get('radar_ticket1_id')
-            radar_ticket2_id = request.data.get('radar_ticket2_id')
-            if not all([radar_ticket1_id, radar_ticket2_id]):
-                return Response({"status": "error", "message": "Missing radar ticket IDs for round trip"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Validate wallet pin
         if not validate_wallet_pin(user, wallet_pin):
             return Response({"status": "error", "message": "Invalid wallet pin"}, status=status.HTTP_401_UNAUTHORIZED)
         
-        # Create a transaction in a database transaction
+        total_amount = 0
+
         with db_transaction.atomic():
             def create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
                 return UserTicket.objects.create(
@@ -505,7 +525,7 @@ def book_ticket(request):
                     ticket_type=ticket_type,
                     num_of_tickets_bought=num_of_tickets_bought,
                     bought_by=bought_by,
-                    ticket_code="".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                    ticket_code=generate_unique_ticket_code()
                 )
 
             def create_transaction(user, amount, transaction_type, sender=None, receiver=None):
@@ -515,7 +535,7 @@ def book_ticket(request):
                     transaction_type=transaction_type,
                     sender=sender,
                     receiver=receiver,
-                    reference_number="".join(random.choices(string.ascii_uppercase + string.digits, k=12))
+                    reference_number=generate_unique_reference_number()
                 )
 
             if trip_type == "one_way":
@@ -523,11 +543,13 @@ def book_ticket(request):
 
                 if ticket_type == "sp":
                     create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type)
+                    total_amount += radar_ticket.price
                     create_transaction(user, radar_ticket.price, 'booking')
                 elif ticket_type == "mp":
                     if buy_for_self:
                         num_of_tickets_bought = len(mp_ticket_list)
                         create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                        total_amount += radar_ticket.price * num_of_tickets_bought
                         create_transaction(user, radar_ticket.price * num_of_tickets_bought, 'booking')
                     
                     for mp_ticket in mp_ticket_list:
@@ -548,14 +570,16 @@ def book_ticket(request):
                             sender=user,
                             receiver=Users.objects.get(user_id=mp_ticket['user_id'])
                         )
+                        total_amount += radar_ticket.price
 
             elif trip_type == "round_trip":
-                radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=radar_ticket1_id)
-                radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=radar_ticket2_id)
+                radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=request.data.get('radar_ticket1_id'))
+                radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=request.data.get('radar_ticket2_id'))
 
                 if ticket_type == 'sp':
                     create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type)
                     create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type)
+                    total_amount += radar_ticket1.price + radar_ticket2.price
                     create_transaction(user, radar_ticket1.price + radar_ticket2.price, 'booking')
                 
                 elif ticket_type == 'mp':
@@ -563,6 +587,7 @@ def book_ticket(request):
                         num_of_tickets_bought = len(mp_ticket_list)
                         create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
                         create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                        total_amount += (radar_ticket1.price + radar_ticket2.price) * num_of_tickets_bought
                         create_transaction(user, (radar_ticket1.price + radar_ticket2.price) * num_of_tickets_bought, 'booking')
                     
                     for mp_ticket in mp_ticket_list:
@@ -593,8 +618,13 @@ def book_ticket(request):
                             sender=user,
                             receiver=Users.objects.get(user_id=mp_ticket['user_id'])
                         )
+                        total_amount += radar_ticket1.price + radar_ticket2.price
 
-            return Response({"status": "success", "message": "Tickets booked and transactions created successfully"}, status=status.HTTP_201_CREATED)
+            # Deduct the total amount from the user's wallet
+            if deduct_from_wallet(user, total_amount):
+                return Response({"status": "success", "message": "Tickets booked and transactions created successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "message": "Insufficient balance"}, status=status.HTTP_402_PAYMENT_REQUIRED)
     
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1301,6 +1331,7 @@ def find_ride(request):
             'to_loc': ride.to_loc,
             'transport_date': ride.transport_date,
             'transport_time': ride.transport_time,
+            'available_seats': ride.available_seats,
             'num_of_buyers': ride.num_of_buyers,
             'status': ride.status
         } for ride in matching_rides]
@@ -1394,3 +1425,34 @@ def get_username_and_prof_pic_of_users_i_sent_money_to(request):
         return Response({'status': 'success', 'users_info': users_info}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@api_view(['POST'])
+def driver_confirm_user_ticket_code(request):
+    radar_ticket_id = request.data.get('radar_ticket_id')
+    ticket_code = request.data.get('ticket_code')
+
+    if not all([radar_ticket_id, ticket_code]):
+        return Response({"status": "error", "message": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        radar_ticket = RadarTicket.objects.get(radar_ticket_id=radar_ticket_id)
+    except RadarTicket.DoesNotExist:
+        return Response({"status": "error", "message": "Radar ticket not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        user_ticket = UserTicket.objects.get(
+            radar_ticket=radar_ticket,
+            ticket_code=ticket_code
+        )
+    except UserTicket.DoesNotExist:
+        return Response({"status": "error", "message": "Ticket code not found for this radar ticket"}, status=status.HTTP_404_NOT_FOUND)
+
+    if user_ticket.status != 'Pending':
+        return Response({"status": "error", "message": "Ticket has already been used or is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Optionally, you can update the ticket status to 'Used' or any other appropriate status
+    user_ticket.status = 'Used'
+    user_ticket.save()
+
+    return Response({"status": "success", "message": "Ticket code confirmed successfully"}, status=status.HTTP_200_OK)

@@ -67,7 +67,7 @@ class Driver(models.Model):
     fullname = models.CharField(max_length=124)
     username = models.CharField(unique=True, max_length=124)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=124)
+    password = models.CharField(max_length=5)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
 
     def __str__(self):
@@ -86,7 +86,8 @@ class RadarTicket(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     transport_date = models.DateField()
     transport_time = models.TimeField()
-    num_of_buyers = models.IntegerField(default=12)
+    available_seats = models.IntegerField(default=12)
+    num_of_buyers = models.IntegerField(default=0)
     status = models.CharField(max_length=20, default='upcoming')
 
 
