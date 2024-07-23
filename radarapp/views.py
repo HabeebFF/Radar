@@ -1426,21 +1426,23 @@ def get_username_and_prof_pic_of_users_i_sent_money_to(request):
 
         user = get_object_or_404(Users, pk=user_id)
 
-        sent_transfers = Transaction.objects.filter(sender=user).select_related('receiver', 'receiver__userprofile').distinct('receiver')
+        sent_transfers = Transaction.objects.filter(sender=user).distinct('receiver')
 
         users_info = []
         for transfer in sent_transfers:
             receiver = transfer.receiver
-            profile_picture_url = request.build_absolute_uri(receiver.userprofile.profile_picture.url) if receiver.userprofile.profile_picture else None
-            users_info.append({
-                'username': receiver.username,
-                'profile_picture_url': profile_picture_url
-            })
+            if receiver:
+                user_profile = UserProfile.objects.filter(user=receiver).first()
+                profile_picture_url = request.build_absolute_uri(user_profile.profile_picture.url) if user_profile and user_profile.profile_picture else None
+                users_info.append({
+                    'username': receiver.username,
+                    'profile_picture_url': profile_picture_url
+                })
 
         return Response({'status': 'success', 'users_info': users_info}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 @api_view(['POST'])
 def driver_confirm_user_ticket_code(request):
