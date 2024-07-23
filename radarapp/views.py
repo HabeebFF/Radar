@@ -1508,7 +1508,7 @@ def topup_wallet(request):
 
         # Log transaction details
         Transaction.objects.create(
-            user_id=user,
+            user=user,
             reference_number=reference,
             transaction_type='deposit',
             status='pending',
