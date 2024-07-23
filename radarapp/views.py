@@ -41,6 +41,8 @@ from PIL import Image
 import io
 from django.db import transaction as db_transaction
 import uuid
+from django.http import HttpResponseRedirect
+
 
 
 paystack_secret_key = 'sk_test_c70a285be29337a0697e19864e3665adb79cfc37'
@@ -1563,7 +1565,7 @@ def verify_payment(request):
                     wallet.wallet_balance += Decimal(amount)
                     wallet.save()
 
-                return Response({'message': 'Payment verified successfully.'}, status=status.HTTP_200_OK)
+                return HttpResponseRedirect("https://www.google.com")
             except Transaction.DoesNotExist:
                 return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
             except UserWallet.DoesNotExist:
