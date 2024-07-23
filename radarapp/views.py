@@ -1470,11 +1470,11 @@ def driver_confirm_user_ticket_code(request):
 
 @api_view(['POST'])
 def topup_wallet(request):
-    email = request.data.get("email")
+    # email = request.data.get("email")
     amount = request.data.get("amount")
     user_id = request.data.get("user_id")  # Assuming user_id is passed from the frontend
 
-    if not email or not amount or not user_id:
+    if not amount or not user_id:
         return Response({"error": "Email, amount, and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Convert amount to kobo (smallest currency unit)
@@ -1488,7 +1488,7 @@ def topup_wallet(request):
     # Initialize transaction with Paystack
     url = "https://api.paystack.co/transaction/initialize"
     payload = json.dumps({
-        "email": email,
+        # "email": email,
         "amount": amount_in_kobo,
     })
     headers = {
@@ -1513,7 +1513,7 @@ def topup_wallet(request):
             transaction_type='deposit',
             status='pending',
             access_code=access_code,
-            email=email,
+            email="email",
             amount=amount,
         )
 
