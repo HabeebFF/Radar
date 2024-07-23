@@ -671,21 +671,29 @@ def get_all_transactions(request):
     transactions_list = []
 
     for transaction in transactions:
-        my_transc_dict = {
+        transaction_data = {
             'amount': str(transaction.amount),
             'transaction_date': str(transaction.transaction_date),
             'transaction_type': transaction.transaction_type,
             'status': transaction.status,
         }
-        transactions_list.append(my_transc_dict)
+
+        if transaction.transaction_type == 'transfer':
+            transaction_data.update({
+                'receiver_name': transaction.receiver.username,
+                'payment_method': transaction.payment_method,
+                'reference_number': transaction.reference_number
+            })
+        elif transaction.transaction_type == 'deposit':
+            transaction_data.update({
+                'sender_name': transaction.sender.username,
+                'credited_to': transaction.credited_to,
+                'reference_number': transaction.reference_number
+            })
+
+        transactions_list.append(transaction_data)
 
     return Response({"status": "success", "transactions": transactions_list}, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-def send_money(request):
-    sender_id = request.data.get('sender_id')
-    receiver_username = request.data.get('receiver_username')
 
 
 @api_view(['POST'])
