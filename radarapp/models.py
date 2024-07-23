@@ -51,6 +51,14 @@ class VerificationToken(models.Model):
     def is_valid(self):
         now = datetime.datetime.now(datetime.timezone.utc)
         return now - self.created_at < datetime.timedelta(minutes=10)
+    
+
+class Notification(models.Model):
+    user = models.ForeignKey(Users, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
 
 class Driver(models.Model):
     driver_id = models.AutoField(primary_key=True)

@@ -3,7 +3,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import UserTicket, UserProfile, UserWallet, Users, VerificationToken, Transaction, Driver, RadarTicket
+from .models import UserTicket, UserProfile, UserWallet, Users, VerificationToken, Transaction, Driver, RadarTicket, Notification
 from .serializers import UserSerializer, DriverSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
@@ -1295,3 +1295,30 @@ def confirm_ticket_code(request):
     
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+def get_all_user_notifications(request):
+    user_id = request.data.get('user_id')
+
+    if not user_id:
+        return Response({"status": "error", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = Users.objects.get(user_id=user_id)
+        notifications = Notification.objects.filter(user=user).order_by('-created_at')
+
+        notification_list = []
+        for notification in notifications:
+            notification_list.append({
+                'message': notification.message,
+                'created_at': notification.created_at,
+                'is_read': notification.is_read
+            })
+
+        return Response({"status": "success", "notifications": notification_list}, status=status.HTTP_200_OK)
+
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
