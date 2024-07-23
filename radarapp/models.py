@@ -133,6 +133,10 @@ class Transaction(models.Model):
     reference_number = models.CharField(max_length=20)
     payment_method = models.CharField(max_length=14, default="Wallet Balance", null=True)
     credited_to = models.CharField(max_length=14, default="Wallet Balance", null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    access_code = models.CharField(max_length=100, unique=True, null=True)
+    email = models.EmailField(null=True)
 
 
     def __str__(self):
