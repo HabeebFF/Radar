@@ -814,26 +814,26 @@ def send_money(request):
     response_data = {
         "status": "success",
         "message": "Money sent successfully",
-        "transaction_details": {
-            "sender_transaction": {
-                "amount": str(sender_transaction.amount),
-                "transaction_date": str(sender_transaction.transaction_date),
-                "transaction_type": sender_transaction.transaction_type,
-                "status": sender_transaction.status,
-                "reference_number": sender_transaction.reference_number,
-                "receiver_name": receiver.username,
-                "payment_method": sender_transaction.payment_method
-            },
-            "receiver_transaction": {
-                "amount": str(receiver_transaction.amount),
-                "transaction_date": str(receiver_transaction.transaction_date),
-                "transaction_type": receiver_transaction.transaction_type,
-                "status": receiver_transaction.status,
-                "reference_number": receiver_transaction.reference_number,
-                "sender_name": sender.username,
-                "credited_to": receiver_transaction.credited_to
-            }
-        }
+        # "transaction_details": {
+        #     "sender_transaction": {
+        #         "amount": str(sender_transaction.amount),
+        #         "transaction_date": str(sender_transaction.transaction_date),
+        #         "transaction_type": sender_transaction.transaction_type,
+        #         "status": sender_transaction.status,
+        #         "reference_number": sender_transaction.reference_number,
+        #         "receiver_name": receiver.username,
+        #         "payment_method": sender_transaction.payment_method
+        #     },
+        #     "receiver_transaction": {
+        #         "amount": str(receiver_transaction.amount),
+        #         "transaction_date": str(receiver_transaction.transaction_date),
+        #         "transaction_type": receiver_transaction.transaction_type,
+        #         "status": receiver_transaction.status,
+        #         "reference_number": receiver_transaction.reference_number,
+        #         "sender_name": sender.username,
+        #         "credited_to": receiver_transaction.credited_to
+        #     }
+        # }
     }
 
     return Response(response_data, status=status.HTTP_200_OK)
