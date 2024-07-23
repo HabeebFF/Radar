@@ -39,6 +39,7 @@ import face_recognition
 import numpy as np
 from PIL import Image
 import io
+from django.db import transaction as db_transaction
 
 
 logger = logging.getLogger(__name__)
@@ -492,78 +493,108 @@ def book_ticket(request):
         if not validate_wallet_pin(user, wallet_pin):
             return Response({"status": "error", "message": "Invalid wallet pin"}, status=status.HTTP_401_UNAUTHORIZED)
         
-        def create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
-            return UserTicket.objects.create(
-                user=user,
-                radar_ticket=radar_ticket,
-                trip_type=trip_type,
-                date_booked=date_booked,
-                time_booked=time_booked,
-                ticket_type=ticket_type,
-                num_of_tickets_bought=num_of_tickets_bought,
-                bought_by=bought_by,
-                ticket_code="".join(random.choices(string.ascii_uppercase + string.digits, k=8))
-            )
+        # Create a transaction in a database transaction
+        with db_transaction.atomic():
+            def create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
+                return UserTicket.objects.create(
+                    user=user,
+                    radar_ticket=radar_ticket,
+                    trip_type=trip_type,
+                    date_booked=date_booked,
+                    time_booked=time_booked,
+                    ticket_type=ticket_type,
+                    num_of_tickets_bought=num_of_tickets_bought,
+                    bought_by=bought_by,
+                    ticket_code="".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                )
 
-        if trip_type == "one_way":
-            radar_ticket = RadarTicket.objects.get(radar_ticket_id=radar_ticket_id)
+            def create_transaction(user, amount, transaction_type, sender=None, receiver=None):
+                Transaction.objects.create(
+                    user=user,
+                    amount=amount,
+                    transaction_type=transaction_type,
+                    sender=sender,
+                    receiver=receiver,
+                    reference_number="".join(random.choices(string.ascii_uppercase + string.digits, k=12))
+                )
 
-            if ticket_type == "sp":
-                create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type)
-            elif ticket_type == "mp":
-                if buy_for_self:
-                    num_of_tickets_bought = len(mp_ticket_list)
-                    create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+            if trip_type == "one_way":
+                radar_ticket = RadarTicket.objects.get(radar_ticket_id=radar_ticket_id)
+
+                if ticket_type == "sp":
+                    create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type)
+                    create_transaction(user, radar_ticket.price, 'booking')
+                elif ticket_type == "mp":
+                    if buy_for_self:
+                        num_of_tickets_bought = len(mp_ticket_list)
+                        create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                        create_transaction(user, radar_ticket.price * num_of_tickets_bought, 'booking')
+                    
+                    for mp_ticket in mp_ticket_list:
+                        radar_ticket = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket_id'])
+                        create_ticket(
+                            Users.objects.get(user_id=mp_ticket['user_id']),
+                            radar_ticket,
+                            trip_type,
+                            mp_ticket['date_booked'],
+                            mp_ticket['time_booked'],
+                            ticket_type,
+                            bought_by=user
+                        )
+                        create_transaction(
+                            Users.objects.get(user_id=mp_ticket['user_id']),
+                            radar_ticket.price,
+                            'booking',
+                            sender=user,
+                            receiver=Users.objects.get(user_id=mp_ticket['user_id'])
+                        )
+
+            elif trip_type == "round_trip":
+                radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=radar_ticket1_id)
+                radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=radar_ticket2_id)
+
+                if ticket_type == 'sp':
+                    create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type)
+                    create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type)
+                    create_transaction(user, radar_ticket1.price + radar_ticket2.price, 'booking')
                 
-                for mp_ticket in mp_ticket_list:
-                    radar_ticket = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket_id'])
-                    create_ticket(
-                        Users.objects.get(user_id=mp_ticket['user_id']),
-                        radar_ticket,
-                        trip_type,
-                        mp_ticket['date_booked'],
-                        mp_ticket['time_booked'],
-                        ticket_type,
-                        bought_by=user
-                    )
+                elif ticket_type == 'mp':
+                    if buy_for_self:
+                        num_of_tickets_bought = len(mp_ticket_list)
+                        create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                        create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                        create_transaction(user, (radar_ticket1.price + radar_ticket2.price) * num_of_tickets_bought, 'booking')
+                    
+                    for mp_ticket in mp_ticket_list:
+                        radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket1_id'])
+                        radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket2_id'])
+                        create_ticket(
+                            Users.objects.get(user_id=mp_ticket['user_id']),
+                            radar_ticket1,
+                            trip_type,
+                            mp_ticket['date_booked'],
+                            mp_ticket['time_booked'],
+                            ticket_type,
+                            bought_by=user
+                        )
+                        create_ticket(
+                            Users.objects.get(user_id=mp_ticket['user_id']),
+                            radar_ticket2,
+                            trip_type,
+                            mp_ticket['date_booked'],
+                            mp_ticket['time_booked'],
+                            ticket_type,
+                            bought_by=user
+                        )
+                        create_transaction(
+                            Users.objects.get(user_id=mp_ticket['user_id']),
+                            radar_ticket1.price + radar_ticket2.price,
+                            'booking',
+                            sender=user,
+                            receiver=Users.objects.get(user_id=mp_ticket['user_id'])
+                        )
 
-        elif trip_type == "round_trip":
-            radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=radar_ticket1_id)
-            radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=radar_ticket2_id)
-
-            if ticket_type == 'sp':
-                create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type)
-                create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type)
-            
-            elif ticket_type == 'mp':
-                if buy_for_self:
-                    num_of_tickets_bought = len(mp_ticket_list)
-                    create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
-                    create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
-                
-                for mp_ticket in mp_ticket_list:
-                    radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket1_id'])
-                    radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket2_id'])
-                    create_ticket(
-                        Users.objects.get(user_id=mp_ticket['user_id']),
-                        radar_ticket1,
-                        trip_type,
-                        mp_ticket['date_booked'],
-                        mp_ticket['time_booked'],
-                        ticket_type,
-                        bought_by=user
-                    )
-                    create_ticket(
-                        Users.objects.get(user_id=mp_ticket['user_id']),
-                        radar_ticket2,
-                        trip_type,
-                        mp_ticket['date_booked'],
-                        mp_ticket['time_booked'],
-                        ticket_type,
-                        bought_by=user
-                    )
-
-        return Response({"status": "success", "message": "Tickets booked successfully"}, status=status.HTTP_201_CREATED)
+            return Response({"status": "success", "message": "Tickets booked and transactions created successfully"}, status=status.HTTP_201_CREATED)
     
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -739,31 +770,70 @@ def send_money(request):
     if sender_wallet.wallet_balance < amount:
         return Response({"status": "error", "message": "Insufficient balance"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Deduct the amount from sender's wallet
-    sender_wallet.wallet_balance -= amount
-    sender_wallet.save()
+    with db_transaction.atomic():
+        # Deduct the amount from sender's wallet
+        sender_wallet.wallet_balance -= amount
+        sender_wallet.save()
 
-    # Add the amount to receiver's wallet
-    receiver_wallet.wallet_balance += amount
-    receiver_wallet.save()
+        # Add the amount to receiver's wallet
+        receiver_wallet.wallet_balance += amount
+        receiver_wallet.save()
 
-    # Record the transaction for sender
-    Transaction.objects.create(
-        user=sender,
-        amount=amount,
-        transaction_type='debit',
-        status='completed'
-    )
+        # Generate a reference number
+        reference_number = f'TXN-{sender.user_id}-{receiver.user_id}-{int(amount*100)}-{datetime.now().timestamp()}'
 
-    # Record the transaction for receiver
-    Transaction.objects.create(
-        user=receiver,
-        amount=amount,
-        transaction_type='credit',
-        status='completed'
-    )
+        # Record the transaction for sender
+        sender_transaction = Transaction.objects.create(
+            user=sender,
+            amount=amount,
+            transaction_type='transfer',
+            status='completed',
+            sender=sender,
+            receiver=receiver,
+            reference_number=reference_number,
+            payment_method='Wallet Balance',
+            credited_to='Wallet Balance'
+        )
 
-    return Response({"status": "success", "message": "Money sent successfully"}, status=status.HTTP_200_OK)
+        # Record the transaction for receiver
+        receiver_transaction = Transaction.objects.create(
+            user=receiver,
+            amount=amount,
+            transaction_type='deposit',
+            status='completed',
+            sender=sender,
+            receiver=receiver,
+            reference_number=reference_number,
+            payment_method='Wallet Balance',
+            credited_to='Wallet Balance'
+        )
+
+    response_data = {
+        "status": "success",
+        "message": "Money sent successfully",
+        "transaction_details": {
+            "sender_transaction": {
+                "amount": str(sender_transaction.amount),
+                "transaction_date": str(sender_transaction.transaction_date),
+                "transaction_type": sender_transaction.transaction_type,
+                "status": sender_transaction.status,
+                "reference_number": sender_transaction.reference_number,
+                "receiver_name": receiver.username,
+                "payment_method": sender_transaction.payment_method
+            },
+            "receiver_transaction": {
+                "amount": str(receiver_transaction.amount),
+                "transaction_date": str(receiver_transaction.transaction_date),
+                "transaction_type": receiver_transaction.transaction_type,
+                "status": receiver_transaction.status,
+                "reference_number": receiver_transaction.reference_number,
+                "sender_name": sender.username,
+                "credited_to": receiver_transaction.credited_to
+            }
+        }
+    }
+
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
