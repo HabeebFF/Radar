@@ -467,6 +467,8 @@ def book_ticket(request):
     buy_for_self = request.data.get('buy_for_self', False)
     mp_ticket_list = request.data.get('mp_ticket_list', [])
 
+    user_id = Users.objects.get(user_id=user_id)
+
     # Validate required fields
     if not all([trip_type, ticket_type, user_id, radar_ticket_id, date_booked, time_booked]):
         return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
