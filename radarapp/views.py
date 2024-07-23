@@ -456,6 +456,14 @@ def get_ticket_price(from_loc, to_loc, trip_type):
         raise ValueError("Invalid locations")
 
 
+def validate_wallet_pin(user, pin):
+    try:
+        wallet = UserWallet.objects.get(user=user)
+        return wallet.pin == pin
+    except UserWallet.DoesNotExist:
+        return False
+
+
 @api_view(['POST'])
 def book_ticket(request):
     trip_type = request.data.get('trip_type')
@@ -466,85 +474,101 @@ def book_ticket(request):
     time_booked = request.data.get('time_booked')
     buy_for_self = request.data.get('buy_for_self', False)
     mp_ticket_list = request.data.get('mp_ticket_list', [])
-
-    user_id = Users.objects.get(user_id=user_id)
-
-    # Validate required fields
-    if not all([trip_type, ticket_type, user_id, radar_ticket_id, date_booked, time_booked]):
-        return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    if trip_type == 'round_trip':
-        radar_ticket1_id = request.data.get('radar_ticket1_id')
-        radar_ticket2_id = request.data.get('radar_ticket2_id')
-        if not all([radar_ticket1_id, radar_ticket2_id]):
-            return Response({"status": "error", "message": "Missing radar ticket IDs for round trip"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
-        return UserTicket.objects.create(
-            user_id=user_id,
-            radar_ticket_id=radar_ticket_id,
-            trip_type=trip_type,
-            date_booked=date_booked,
-            time_booked=time_booked,
-            ticket_type=ticket_type,
-            num_of_tickets_bought=num_of_tickets_bought,
-            bought_by=bought_by,
-            ticket_code="".join(random.choices(string.ascii_uppercase + string.digits, k=8))  # Generate a unique ticket code
-        )
+    wallet_pin = request.data.get('wallet_pin')
 
     try:
+        user = Users.objects.get(user_id=user_id)
+
+        if not all([trip_type, ticket_type, user_id, radar_ticket_id, date_booked, time_booked, wallet_pin]):
+            return Response({"status": "error", "message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if trip_type == 'round_trip':
+            radar_ticket1_id = request.data.get('radar_ticket1_id')
+            radar_ticket2_id = request.data.get('radar_ticket2_id')
+            if not all([radar_ticket1_id, radar_ticket2_id]):
+                return Response({"status": "error", "message": "Missing radar ticket IDs for round trip"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate wallet pin
+        if not validate_wallet_pin(user, wallet_pin):
+            return Response({"status": "error", "message": "Invalid wallet pin"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        def create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=None, bought_by=None):
+            return UserTicket.objects.create(
+                user=user,
+                radar_ticket=radar_ticket,
+                trip_type=trip_type,
+                date_booked=date_booked,
+                time_booked=time_booked,
+                ticket_type=ticket_type,
+                num_of_tickets_bought=num_of_tickets_bought,
+                bought_by=bought_by,
+                ticket_code="".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            )
+
         if trip_type == "one_way":
+            radar_ticket = RadarTicket.objects.get(radar_ticket_id=radar_ticket_id)
+
             if ticket_type == "sp":
-                create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type)
+                create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type)
             elif ticket_type == "mp":
                 if buy_for_self:
                     num_of_tickets_bought = len(mp_ticket_list)
-                    create_ticket(user_id, radar_ticket_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                    create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
                 
                 for mp_ticket in mp_ticket_list:
+                    radar_ticket = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket_id'])
                     create_ticket(
-                        mp_ticket['user_id'],
-                        mp_ticket['radar_ticket_id'],
+                        Users.objects.get(user_id=mp_ticket['user_id']),
+                        radar_ticket,
                         trip_type,
                         mp_ticket['date_booked'],
                         mp_ticket['time_booked'],
                         ticket_type,
-                        bought_by=user_id
+                        bought_by=user
                     )
-        
+
         elif trip_type == "round_trip":
+            radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=radar_ticket1_id)
+            radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=radar_ticket2_id)
+
             if ticket_type == 'sp':
-                create_ticket(user_id, radar_ticket1_id, trip_type, date_booked, time_booked, ticket_type)
-                create_ticket(user_id, radar_ticket2_id, trip_type, date_booked, time_booked, ticket_type)
+                create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type)
+                create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type)
             
             elif ticket_type == 'mp':
                 if buy_for_self:
                     num_of_tickets_bought = len(mp_ticket_list)
-                    create_ticket(user_id, radar_ticket1_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
-                    create_ticket(user_id, radar_ticket2_id, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                    create_ticket(user, radar_ticket1, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
+                    create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
                 
                 for mp_ticket in mp_ticket_list:
+                    radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket1_id'])
+                    radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket2_id'])
                     create_ticket(
-                        mp_ticket['user_id'],
-                        mp_ticket['radar_ticket1_id'],
+                        Users.objects.get(user_id=mp_ticket['user_id']),
+                        radar_ticket1,
                         trip_type,
                         mp_ticket['date_booked'],
                         mp_ticket['time_booked'],
                         ticket_type,
-                        bought_by=user_id
+                        bought_by=user
                     )
                     create_ticket(
-                        mp_ticket['user_id'],
-                        mp_ticket['radar_ticket2_id'],
+                        Users.objects.get(user_id=mp_ticket['user_id']),
+                        radar_ticket2,
                         trip_type,
                         mp_ticket['date_booked'],
                         mp_ticket['time_booked'],
                         ticket_type,
-                        bought_by=user_id
+                        bought_by=user
                     )
 
         return Response({"status": "success", "message": "Tickets booked successfully"}, status=status.HTTP_201_CREATED)
     
+    except Users.DoesNotExist:
+        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except RadarTicket.DoesNotExist:
+        return Response({"status": "error", "message": "RadarTicket not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

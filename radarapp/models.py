@@ -82,7 +82,7 @@ class RadarTicket(models.Model):
 
 class UserTicket(models.Model):
     ticket_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='tickets')
+    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name='tickets')
     radar_ticket_id = models.ForeignKey(RadarTicket, on_delete=models.CASCADE)
     trip_type = models.CharField(max_length=10)
     date_booked = models.DateField()
