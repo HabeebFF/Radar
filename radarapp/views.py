@@ -1480,19 +1480,18 @@ def driver_confirm_user_ticket_code(request):
 
 @api_view(['POST'])
 def topup_wallet(request):
-    # email = request.data.get("email")
     amount = request.data.get("amount")
     user_id = request.data.get("user_id")  # Assuming user_id is passed from the frontend
 
     if not amount or not user_id:
-        return Response({"error": "Email, amount, and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Amount and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Convert amount to kobo (smallest currency unit)
     amount_in_kobo = int(float(amount) * 100)
 
     try:
         user = Users.objects.get(user_id=user_id)
-        email= user.email
+        email = user.email
     except Users.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1525,12 +1524,12 @@ def topup_wallet(request):
             status='Pending',
             access_code=access_code,
             email=email,
-            amount=amount,
+            amount=Decimal(amount),
         )
 
         return Response({"status":"success", "authorization_url": authorization_url, "access_code": access_code, "reference": reference, "amount": amount}, status=status.HTTP_200_OK)
     else:
-        return Response({"status": "error"}, response_data, status=response.status_code)
+        return Response({"status": "error", "message": response_data.get('message', 'Error initializing transaction')}, status=response.status_code)
 
 
 @api_view(['GET'])
@@ -1538,8 +1537,8 @@ def verify_payment(request):
     reference = request.data.get('reference')
     amount = request.data.get('amount')
 
-    if not reference:
-        return Response({'error': 'Reference is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not reference or not amount:
+        return Response({'error': 'Reference and amount are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     url = f"https://api.paystack.co/transaction/verify/{reference}"
 
@@ -1549,35 +1548,29 @@ def verify_payment(request):
     }
 
     response = requests.get(url, headers=headers)
-    # print(response.text)
 
     if response.status_code == 200:
         response_data = response.json()
-        print(response_data['status'])
-        print(response_data['data']['amount'])
         if response_data['status'] and response_data['data']['amount'] == int(amount) * 100:
-            print('good')
             try:
                 # Retrieve the transaction record
                 transaction = Transaction.objects.get(reference=reference)
 
                 # Update the transaction status to successful
-                transaction.transaction_status = 'success'
+                transaction.status = 'success'
                 transaction.save()
 
                 # Update the user's wallet balance
-                user = transaction.user_id
-                wallet = UserWallet.objects.select_for_update().get(user_id=user)
-                wallet.wallet_balance += int(amount)
+                user = transaction.user
+                wallet = UserWallet.objects.select_for_update().get(user=user)
+                wallet.wallet_balance += Decimal(amount)
                 wallet.save()
-                print("Wallet updated successfully")
             except Transaction.DoesNotExist:
                 return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
             except UserWallet.DoesNotExist:
                 return Response({'error': 'Wallet not found'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
-                print("Error updating wallet:", e)
-                return Response({'error': 'Error updating wallet'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             return Response({'message': 'Payment verified successfully.'}, status=status.HTTP_200_OK)
         else:
