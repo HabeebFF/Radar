@@ -1479,8 +1479,6 @@ def topup_wallet(request):
 
     # Convert amount to kobo (smallest currency unit)
     amount_in_kobo = int(float(amount) * 100)
-    user = Users.objects.get(user_id=user_id)
-    email = user.email
 
     try:
         user = Users.objects.get(user_id=user_id)
