@@ -1301,23 +1301,19 @@ def confirm_ticket_code(request):
 def get_all_user_notifications(request):
     user_id = request.data.get('user_id')
 
-    if not user_id:
-        return Response({"status": "error", "message": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
     try:
         user = Users.objects.get(user_id=user_id)
         notifications = Notification.objects.filter(user=user).order_by('-created_at')
-
-        notification_list = []
-        for notification in notifications:
-            notification_list.append({
+        notifications_data = [
+            {
+                'title': notification.title,
                 'message': notification.message,
                 'created_at': notification.created_at,
-                'is_read': notification.is_read
-            })
-
-        return Response({"status": "success", "notifications": notification_list}, status=status.HTTP_200_OK)
-
+                'is_read': notification.is_read,
+                'notif_type': notification.notif_type
+            } for notification in notifications
+        ]
+        return Response({"status": "success", "notifications": notifications_data}, status=status.HTTP_200_OK)
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:

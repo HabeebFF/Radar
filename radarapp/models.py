@@ -55,9 +55,11 @@ class VerificationToken(models.Model):
 
 class Notification(models.Model):
     user = models.ForeignKey(Users, on_delete=models.CASCADE)
+    title = models.CharField(max_length=30)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    notif_type = models.CharField(max_length=7)
 
 
 class Driver(models.Model):
