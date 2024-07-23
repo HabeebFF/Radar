@@ -1509,9 +1509,9 @@ def topup_wallet(request):
         # Log transaction details
         Transaction.objects.create(
             user_id=user,
-            reference=reference,
+            reference_number=reference,
             transaction_type='deposit',
-            transaction_status='pending',
+            status='pending',
             access_code=access_code,
             email=email,
             amount=amount,
@@ -1548,7 +1548,7 @@ def verify_payment(request):
             print('good')
             try:
                 # Retrieve the transaction record
-                transaction = Transaction.objects.get(reference=reference)
+                transaction = Transaction.objects.get(reference_number=reference)
 
                 # Update the transaction status to successful
                 transaction.transaction_status = 'success'
