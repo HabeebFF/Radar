@@ -1522,7 +1522,7 @@ def topup_wallet(request):
             user=user,
             reference=reference,
             transaction_type='deposit',
-            status='pending',
+            status='Pending',
             access_code=access_code,
             email=email,
             amount=amount,
