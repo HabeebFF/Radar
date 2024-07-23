@@ -714,19 +714,26 @@ def get_all_transactions(request):
         }
 
         if transaction.transaction_type == 'transfer':
+            if transaction.receiver:
+                transaction_data.update({
+                    'receiver_name': transaction.receiver.username,
+                })
             transaction_data.update({
-                'receiver_name': transaction.receiver.username,
                 'payment_method': transaction.payment_method,
             })
         elif transaction.transaction_type == 'deposit':
+            if transaction.sender:
+                transaction_data.update({
+                    'sender_name': transaction.sender.username,
+                })
             transaction_data.update({
-                'sender_name': transaction.sender.username,
                 'credited_to': transaction.credited_to,
             })
 
         transactions_list.append(transaction_data)
 
     return Response({"status": "success", "transactions": transactions_list}, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 def send_money(request):
