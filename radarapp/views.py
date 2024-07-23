@@ -1484,6 +1484,7 @@ def topup_wallet(request):
 
     try:
         user = Users.objects.get(user_id=user_id)
+        email= user.email
     except Users.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
