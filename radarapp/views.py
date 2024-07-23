@@ -469,7 +469,7 @@ def book_ticket(request):
     trip_type = request.data.get('trip_type')
     ticket_type = request.data.get('ticket_type')
     user_id = request.data.get('user_id')
-    radar_ticket_id = request.data.get('radar_ticket_id', None)
+    radar_ticket_id = request.data.get('radar_ticket_id', "None")
     date_booked = request.data.get('date_booked')
     time_booked = request.data.get('time_booked')
     buy_for_self = request.data.get('buy_for_self', False)
