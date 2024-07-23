@@ -1575,5 +1575,3 @@ def verify_payment(request):
         return Response({'error': 'Failed to verify payment.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
-@api_view(['POST'])
-def
