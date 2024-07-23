@@ -647,39 +647,8 @@ def get_wallet_balance(request):
 
 @api_view(['GET'])
 def get_locations(request):
-    locations = ['mushin', 'costain', 'ilupeju', 'yaba', 'oshodi', 'ikeja']
+    locations = ['Mushin', 'Costain', 'Ilupeju', 'Yaba', 'Oshodi', 'Ikeja']
     return Response({'status': 'success', 'message': locations}, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-def get_first_three_transactions(request):
-    user_id = request.data.get('user_id')
-
-    if not user_id:
-        return Response({"status": "error", "message": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        user = Users.objects.get(user_id=user_id)
-    except Users.DoesNotExist:
-        return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-    transactions = Transaction.objects.filter(user=user)[:3]
-
-    if not transactions:
-        return Response({"status": "success", "message": "No transactions found"}, status=status.HTTP_200_OK)
-
-    transactions_list = []
-
-    for transaction in transactions:
-        my_transc_dict = {
-            'amount': str(transaction.amount),
-            'transaction_date': str(transaction.transaction_date),
-            'transaction_type': transaction.transaction_type,
-            'status': transaction.status,
-        }
-        transactions_list.append(my_transc_dict)
-
-    return Response({"status": "success", "transactions": transactions_list}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
