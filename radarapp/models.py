@@ -127,12 +127,12 @@ class Transaction(models.Model):
     transaction_date = models.DateTimeField(auto_now_add=True)
     transaction_type = models.CharField(max_length=10)  # Example values: 'deposit', 'withdrawal', etc.
     status = models.CharField(max_length=10, default='Pending')
-    sender = models.ForeignKey(Users, related_name='sent_transfers', on_delete=models.CASCADE)
-    receiver = models.ForeignKey(Users, related_name='received_transfers', on_delete=models.CASCADE)
+    sender = models.ForeignKey(Users, related_name='sent_transfers', on_delete=models.CASCADE, null=True)
+    receiver = models.ForeignKey(Users, related_name='received_transfers', on_delete=models.CASCADE, null=True)
     reference_number = models.CharField(max_length=20)
     payment_method = models.CharField(max_length=14, default="Wallet Balance", null=True)
     credited_to = models.CharField(max_length=14, default="Wallet Balance", null=True)
-    
+
 
     def __str__(self):
         return f"{self.user.email} - {self.amount} - {self.transaction_type}"
