@@ -1399,7 +1399,8 @@ def find_ride(request):
                 'available_seats': ride.available_seats,
                 'num_of_buyers': ride.num_of_buyers,
                 'status': ride.status,
-                'radar_ticket_id': ride.radar_ticket_id
+                'radar_ticket_id': ride.radar_ticket_id,
+                'price': ride.price
 
             })
 
