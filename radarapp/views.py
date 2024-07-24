@@ -178,6 +178,13 @@ def verify_token(request):
 
                     verification_token.delete()
 
+                    Notification.objects.create(
+                        user=user,
+                        title="Welcome!",
+                        message="Welcome to Radar! We are excited to have you on board.",
+                        notif_type='signup',
+                    )
+
                     return Response({'status': 'success', 'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
                 else:
                     return Response({'status': 'error', 'message': result['errors']}, status=status.HTTP_400_BAD_REQUEST)
@@ -297,6 +304,13 @@ def change_password_fp(request):
         user = Users.objects.get(email=email)
         user.password = make_password(new_password)
         user.save()
+
+        Notification.objects.create(
+            user=user,
+            title="Password Changed",
+            message="Your password has been changed successfully.",
+            notif_type='password',
+        )
         
         return Response({"status": "success", "message": "Password changed successfully"}, status=status.HTTP_200_OK)
     
@@ -517,7 +531,7 @@ def book_ticket(request):
 
         if not validate_wallet_pin(user, wallet_pin):
             return Response({"status": "error", "message": "Invalid wallet pin"}, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         total_amount = 0
 
         with db_transaction.atomic():
@@ -544,6 +558,14 @@ def book_ticket(request):
                     reference=generate_unique_reference_number()
                 )
 
+            def create_notification(user, title, message, notif_type):
+                Notification.objects.create(
+                    user=user,
+                    title=title,
+                    message=message,
+                    notif_type=notif_type,
+                )
+
             if trip_type == "one_way":
                 radar_ticket = RadarTicket.objects.get(radar_ticket_id=radar_ticket_id)
 
@@ -557,7 +579,7 @@ def book_ticket(request):
                         create_ticket(user, radar_ticket, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
                         total_amount += radar_ticket.price * num_of_tickets_bought
                         create_transaction(user, radar_ticket.price * num_of_tickets_bought, 'booking')
-                    
+
                     for mp_ticket in mp_ticket_list:
                         radar_ticket = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket_id'])
                         create_ticket(
@@ -587,7 +609,7 @@ def book_ticket(request):
                     create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type)
                     total_amount += radar_ticket1.price + radar_ticket2.price
                     create_transaction(user, radar_ticket1.price + radar_ticket2.price, 'booking')
-                
+
                 elif ticket_type == 'mp':
                     if buy_for_self:
                         num_of_tickets_bought = len(mp_ticket_list)
@@ -595,7 +617,7 @@ def book_ticket(request):
                         create_ticket(user, radar_ticket2, trip_type, date_booked, time_booked, ticket_type, num_of_tickets_bought=num_of_tickets_bought)
                         total_amount += (radar_ticket1.price + radar_ticket2.price) * num_of_tickets_bought
                         create_transaction(user, (radar_ticket1.price + radar_ticket2.price) * num_of_tickets_bought, 'booking')
-                    
+
                     for mp_ticket in mp_ticket_list:
                         radar_ticket1 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket1_id'])
                         radar_ticket2 = RadarTicket.objects.get(radar_ticket_id=mp_ticket['radar_ticket2_id'])
@@ -628,10 +650,11 @@ def book_ticket(request):
 
             # Deduct the total amount from the user's wallet
             if deduct_from_wallet(user, total_amount):
+                create_notification(user, "Ticket Booked", "Your ticket has been booked successfully.", "booking")
                 return Response({"status": "success", "message": "Tickets booked and transactions created successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "message": "Insufficient balance"}, status=status.HTTP_402_PAYMENT_REQUIRED)
-    
+
     except Users.DoesNotExist:
         return Response({"status": "error", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except RadarTicket.DoesNotExist:
