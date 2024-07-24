@@ -34,7 +34,7 @@ class UserProfile(models.Model):
 class UserWallet(models.Model):
     user_wallet_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(Users, on_delete=models.CASCADE)
-    wallet_balance = models.DecimalField(default=5000, null=False, decimal_places=2, max_digits=10)
+    wallet_balance = models.DecimalField(default=1000, null=False, decimal_places=2, max_digits=10)
     wallet_pin = models.CharField(max_length=4)
 
     def clean(self):
