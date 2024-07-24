@@ -10,6 +10,7 @@ class Users(AbstractUser):
     email = models.EmailField(unique=True, db_index=True)
     password = models.CharField(max_length=256)
     user_type = models.CharField(max_length=10, default='user')
+    joined_by = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = 'email'  # Use email for authentication
     REQUIRED_FIELDS = ['username', 'full_name']  # Required fields for creating a superuser
@@ -68,6 +69,7 @@ class Driver(models.Model):
     username = models.CharField(unique=True, max_length=124)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=5)
+    joined_by = models.DateTimeField(auto_now_add=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
 
     def __str__(self):
