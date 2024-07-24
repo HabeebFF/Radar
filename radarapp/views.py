@@ -1398,7 +1398,9 @@ def find_ride(request):
                 'transport_time': ride.transport_time,
                 'available_seats': ride.available_seats,
                 'num_of_buyers': ride.num_of_buyers,
-                'status': ride.status
+                'status': ride.status,
+                'radar_ticket_id': ride.radar_ticket_id
+
             })
 
         return Response({'status': 'success', 'rides': rides_data}, status=status.HTTP_200_OK)
