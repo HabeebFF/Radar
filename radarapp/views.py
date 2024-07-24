@@ -76,6 +76,14 @@ def generate_unique_reference_number():
     return reference_number
 
 
+def create_notification(user, message, notif_type):
+    Notification.objects.create(
+        user=user,
+        message=message,
+        notif_type=notif_type
+    )
+
+
 def create_user(data):
     serializer = UserSerializer(data=data)
     if serializer.is_valid():
@@ -840,6 +848,10 @@ def send_money(request):
             payment_method='Wallet Balance',
             credited_to='Wallet Balance'
         )
+
+        create_notification(sender, f'You have successfully sent {amount} to {receiver.username}', 'transaction')
+        create_notification(receiver, f'You have received {amount} from {sender.username}', 'transaction')
+
 
     response_data = {
         "status": "success",
