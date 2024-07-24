@@ -1249,8 +1249,8 @@ def get_all_booked_ticket_with_user_id(request):
         return Response({'status': 'error', 'message': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Fetch all tickets associated with the provided user_id
-        tickets = UserTicket.objects.filter(user_id=user_id)
+        # Fetch all tickets associated with the provided user_id using select_related for better performance
+        tickets = UserTicket.objects.filter(user_id=user_id).select_related('radar_ticket_id__driver_id')
 
         if not tickets.exists():
             return Response({'status': 'error', 'message': 'No tickets found for the given user_id.'}, status=status.HTTP_404_NOT_FOUND)
@@ -1258,10 +1258,13 @@ def get_all_booked_ticket_with_user_id(request):
         # Serialize the ticket data
         ticket_data = []
         for ticket in tickets:
-            radar_ticket = RadarTicket.objects.get(radar_ticket_id=ticket.radar_ticket_id)
+            radar_ticket = ticket.radar_ticket_id
+            driver = radar_ticket.driver_id
+            profile_picture_url = request.build_absolute_uri(driver.profile_picture.url) if driver.profile_picture else None
+
             ticket_data.append({
                 'ticket_id': ticket.id,
-                'radar_ticket_id': ticket.radar_ticket_id,
+                'radar_ticket_id': radar_ticket.radar_ticket_id,
                 'trip_type': ticket.trip_type,
                 'date_booked': ticket.date_booked,
                 'time_booked': ticket.time_booked,
@@ -1269,7 +1272,10 @@ def get_all_booked_ticket_with_user_id(request):
                 'num_of_tickets_bought': ticket.num_of_tickets_bought,
                 'bought_by': ticket.bought_by,
                 'ticket_code': ticket.ticket_code,
-                'radar_ticket_price': radar_ticket.price
+                'radar_ticket_price': radar_ticket.price,
+                'driver_name': driver.fullname,
+                'joined_by': driver.joined_by,
+                'driver_profile_picture': profile_picture_url
             })
 
         return Response({'status': 'success', 'tickets': ticket_data}, status=status.HTTP_200_OK)
