@@ -1336,35 +1336,41 @@ def find_ride(request):
         except ValueError:
             return Response({'status': 'error', 'message': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Query the RadarTicket model for matching rides
+        # Query the RadarTicket model for matching rides using select_related for better performance
         matching_rides = RadarTicket.objects.filter(
             from_loc=from_loc,
             to_loc=to_loc,
             transport_date=transport_date
-        )
+        ).select_related('driver_id')
 
         # If no rides found
         if not matching_rides.exists():
             return Response({'status': 'error', 'message': 'No rides found.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Serialize the results
-        rides_data = [{
-            'driver_id': ride.driver_id.driver_id,
-            'from_loc': ride.from_loc,
-            'to_loc': ride.to_loc,
-            'transport_date': ride.transport_date,
-            'transport_time': ride.transport_time,
-            'available_seats': ride.available_seats,
-            'num_of_buyers': ride.num_of_buyers,
-            'status': ride.status,
-            'joined_by': ride.driver_id.joined_by   
-        } for ride in matching_rides]
+        rides_data = []
+        for ride in matching_rides:
+            driver = ride.driver_id
+            profile_picture_url = request.build_absolute_uri(driver.profile_picture.url) if driver.profile_picture else None
+            rides_data.append({
+                'driver_id': driver.driver_id,
+                'driver_fullname': driver.fullname,
+                'driver_joined_by': driver.joined_by,
+                'driver_profile_picture': profile_picture_url,
+                'from_loc': ride.from_loc,
+                'to_loc': ride.to_loc,
+                'transport_date': ride.transport_date,
+                'transport_time': ride.transport_time,
+                'available_seats': ride.available_seats,
+                'num_of_buyers': ride.num_of_buyers,
+                'status': ride.status
+            })
 
         return Response({'status': 'success', 'rides': rides_data}, status=status.HTTP_200_OK)
     
     except Exception as e:
         return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 
 @api_view(['POST'])
 def confirm_ticket_code(request):
