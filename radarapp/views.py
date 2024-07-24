@@ -993,7 +993,7 @@ def create_ticket(request):
             to_loc=to_loc,
             transport_date=transport_date,
             transport_time=transport_time,
-            num_of_buyers=num_of_buyers,
+            available_seats=num_of_buyers,
             status=ticket_status,
             price=price  # Save the calculated price in the radar ticket
         )
